@@ -1,0 +1,26 @@
+{
+  "sessionId": "c914fdc6723147ac83f6cd632a05248c",
+  "interview": {
+    "questions": [
+      {
+        "id": "q12",
+        "category": "curiosity",
+        "text": "What is something you taught yourself recently?"
+      },
+      {
+        "id": "q09",
+        "category": "goals",
+        "text": "What do you hope to study or explore in college?"
+      }
+    ],
+    "responses": [
+      {
+        "questionId": "full_interview",
+        "audioPath": "/Users/peterma/Dropbox/My Mac (Peter\u2019s MacBook Pro)/Downloads/4-containers-fantastic_five/web-app/data/sessions/c914fdc6723147ac83f6cd632a05248c/audio/full_interview.webm",
+        "transcriptPath": "/Users/peterma/Dropbox/My Mac (Peter\u2019s MacBook Pro)/Downloads/4-containers-fantastic_five/web-app/data/sessions/c914fdc6723147ac83f6cd632a05248c/transcripts/full_interview.txt",
+        "transcriptStatus": "completed",
+        "transcript": "Recently I taught myself how to code and also how to read and how to write and how to do addition and subtraction and I taught myself how to clean dishes and I hope to study how to write in college and how to do math and how to type on the computer."
+      }
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "sessionId": "6e5f39867072475aa5acd744152c0fbd",
+  "interview": {
+    "questions": [
+      {
+        "id": "q10",
+        "category": "values",
+        "text": "What value is most important to you, and why?"
+      },
+      {
+        "id": "q17",
+        "category": "future",
+        "text": "Where do you hope college will take you in the long term?"
+      }
+    ],
+    "responses": [
+      {
+        "questionId": "q10",
+        "audioPath": "/Users/peterma/Dropbox/My Mac (Peter\u2019s MacBook Pro)/Downloads/4-containers-fantastic_five/web-app/data/sessions/6e5f39867072475aa5acd744152c0fbd/audio/q10.webm",
+        "transcriptPath": "/Users/peterma/Dropbox/My Mac (Peter\u2019s MacBook Pro)/Downloads/4-containers-fantastic_five/web-app/data/sessions/6e5f39867072475aa5acd744152c0fbd/transcripts/q10.txt",
+        "transcriptStatus": "completed",
+        "transcript": "The value that is most interesting to me that is most important to me is kindness because I think being kind to people is important."
+      },
+      {
+        "questionId": "q17",
+        "audioPath": "/Users/peterma/Dropbox/My Mac (Peter\u2019s MacBook Pro)/Downloads/4-containers-fantastic_five/web-app/data/sessions/6e5f39867072475aa5acd744152c0fbd/audio/q17.webm",
+        "transcriptPath": "/Users/peterma/Dropbox/My Mac (Peter\u2019s MacBook Pro)/Downloads/4-containers-fantastic_five/web-app/data/sessions/6e5f39867072475aa5acd744152c0fbd/transcripts/q17.txt",
+        "transcriptStatus": "completed",
+        "transcript": "I hope college will take me to be very successful and have a big family and be a very good person."
+      }
+    ]
+  }
+}
