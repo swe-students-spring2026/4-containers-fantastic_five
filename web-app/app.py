@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
@@ -19,12 +20,16 @@ def create_app(test_config: dict | None = None) -> Flask:
     flask_app.config.update(
         SECRET_KEY="development-key",
         SESSION_STORAGE_PATH=data_dir,
+        MONGO_URI=os.environ.get("MONGO_URI", "mongodb://mongodb:27017/appdb"),
     )
 
     if test_config:
         flask_app.config.update(test_config)
 
-    storage = SessionStorage(flask_app.config["SESSION_STORAGE_PATH"])
+    storage = SessionStorage(
+        flask_app.config["SESSION_STORAGE_PATH"],
+        mongo_uri=flask_app.config["MONGO_URI"],
+    )
     transcriber = AudioTranscriber()
     service = MockInterviewService(storage, transcriber)
     flask_app.config["INTERVIEW_SERVICE"] = service
