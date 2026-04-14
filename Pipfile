@@ -4,14 +4,9 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pylint = "*"
-black = "*"
-flask = "*"
-pytest = "*"
-pytest-flask = "*"
-faster-whisper = "*"
+langchain-openai = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3"
+python_version = "3.14"
