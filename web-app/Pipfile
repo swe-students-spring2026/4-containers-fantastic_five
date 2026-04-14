@@ -6,6 +6,10 @@ name = "pypi"
 [packages]
 pylint = "*"
 black = "*"
+flask = "*"
+pytest = "*"
+pytest-flask = "*"
+faster-whisper = "*"
 
 [dev-packages]
 
