@@ -1,2 +1,4 @@
 flask
 pymongo
+faster-whisper
+ffmpeg-python
