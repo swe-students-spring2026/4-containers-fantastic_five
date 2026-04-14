@@ -8,6 +8,7 @@ pylint = "*"
 black = "*"
 langchain-openai = "*"
 dotenv = "*"
+langchain-core = "*"
 
 [dev-packages]
 
