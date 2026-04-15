@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-import os
+import os,asyncio
+import sys
+from io import BytesIO
 import uuid
 from datetime import datetime
 from pathlib import Path
+import parser
+from pypdf import PdfReader
 
 from flask import (
     Flask,
@@ -18,6 +22,24 @@ from flask import (
 from interview_service import MockInterviewService
 from storage import SessionStorage
 from transcriber import AudioTranscriber
+
+ML_CLIENT_DIR = Path(__file__).resolve().parents[1] / "machine-learning-client"
+if str(ML_CLIENT_DIR) not in sys.path:
+    sys.path.insert(0, str(ML_CLIENT_DIR))
+
+from main import CMRun
+
+
+
+def extract_pdf_text(pdf_bytes: bytes) -> str:
+    #if the uploaded file is emply, return error
+    if not pdf_bytes:
+        return "error: input pdf file"
+    #conver the pdf into a file object so the pdf reader can read it
+    reader = PdfReader(BytesIO(pdf_bytes))
+    #go through each page and extract the text, then join all the text into one string
+    pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
+    return "\n\n".join(text for text in pages_text if text).strip()
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -226,6 +248,112 @@ def create_app(test_config: dict | None = None) -> Flask:
                 gpa=gpa,
                 notes=notes,
                 essay_pdf_bytes=essay_bytes_string,
+            )
+
+            # add simple metadata not handled by storage.py yet
+            session_payload["created_at"] = datetime.utcnow().isoformat()
+            session_payload["status"] = "PENDING"
+            save_session_document(session_payload)
+
+            return redirect(url_for("session_detail", session_id=session_id))
+
+        return render_template("newSession.html", is_valid=True)
+
+    @flask_app.get("/interview")
+    def interview():
+        """Mock interview page."""
+        login_redirect = require_login()
+        if login_redirect:
+            return login_redirect
+
+        return render_template("interview.html", is_valid=True)
+
+    @flask_app.get("/runs/<session_id>")
+    def session_detail(session_id: str):
+        """Detail page for one saved analysis session."""
+        login_redirect = require_login()
+        if login_redirect:
+            return login_redirect
+
+        try:
+            raw_session = storage.get_session(session_id)
+        except FileNotFoundError:
+            return redirect(url_for("dashboard"))
+
+        # basic ownership check
+        if raw_session.get("userId") != current_user_id():
+            return redirect(url_for("dashboard"))
+
+        session_data = decorate_session(raw_session)
+
+        return render_template(
+            "sessionDetail.html",
+            is_valid=True,
+            session=session_data,
+        )
+    
+    @flask_app.route("/runs/new", methods=["GET", "POST"])
+    def new_session():
+        """
+        New session page.
+        Right now this mostly renders the form page.
+        If you later decide to POST here, this route is ready for it.
+        """
+        login_redirect = require_login()
+        if login_redirect:
+            return login_redirect
+
+        if request.method == "POST":
+            uploaded_file = request.files.get("user_essay")
+            intended_university = request.form.get("intended_university", "").strip()
+            sat_score_raw = request.form.get("sat_score", "").strip()
+            gpa_raw = request.form.get("gpa", "").strip()
+            notes = request.form.get("notes", "").strip()
+            essay_file_name =uploaded_file.filename if uploaded_file and uploaded_file.filename else "Not provided"
+            essay_pdf_bytes = uploaded_file.read()
+            usser_essay = extract_pdf_text(essay_pdf_bytes or b"")
+
+            
+            sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
+            try:
+                gpa = float(gpa_raw) if gpa_raw else 0.0
+            except ValueError:
+                gpa = 0.0
+
+            session_id = str(uuid.uuid4())
+
+            #PETER NEED TO ADD interview response here
+
+            session_payload = storage.create_session(session_id,current_user_id(),intended_university,usser_essay,essay_file_name,sat_score,gpa,notes,essay_pdf_bytes,
+            )
+
+            output = asyncio.run( # The Agent is called here with all the provided inputs 
+                CMRun(
+                    user_essay=usser_essay,
+                    essay_file_name=essay_file_name,
+                    essay_pdf_bytes=essay_pdf_bytes,
+                    gpa=gpa,
+                    notes=notes,
+                    user_interview_response="Great",
+                    intended_university=intended_university,
+                    sat_score=sat_score
+                )
+            )
+
+    # Parse agent output and save to MongoDB
+        if output.result and session_id:
+            parsed = parse_agent_output(output.result)
+
+            mongo_uri = os.environ.get("MONGO_URI", "mongodb://mongodb:27017/appdb")
+            storage = SessionStorage("/tmp/sessions", mongo_uri=mongo_uri)
+
+            storage.save_analysis_result(
+                session_id=session_id,
+                applicant_score=parsed["applicant_score"],
+                strength=parsed["strength"],
+                missing_elements=parsed["missing_elements"],
+                suggested_edits=parsed["suggested_edits"],
+                ai_insights=parsed["ai_insights"],
             )
 
             # add simple metadata not handled by storage.py yet
