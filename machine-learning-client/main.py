@@ -3,9 +3,6 @@ import asyncio  # Needed to run the async ResumeGoRun() entry point from this st
 from inputs import CMInputs
 from langgraph.graph import StateGraph, START, END #this is the workflow that will pass Agent STATE and update variables of it
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "web-app"))
-from parser import parse_agent_output
-from storage import SessionStorage
 
 async def CMRun(
     user_essay: str,
@@ -51,22 +48,6 @@ async def CMRun(
     resumeGo  = workflow.compile()
     result_state = await resumeGo.ainvoke(userState) #this will return the entire updated state(AppState) object
 
-
-    # Parse agent output and save to MongoDB
-    if result_state.result and session_id:
-        parsed = parse_agent_output(result_state.result)
-
-        mongo_uri = os.environ.get("MONGO_URI", "mongodb://mongodb:27017/appdb")
-        storage = SessionStorage("/tmp/sessions", mongo_uri=mongo_uri)
-
-        storage.save_analysis_result(
-            session_id=session_id,
-            applicant_score=parsed["applicant_score"],
-            strength=parsed["strength"],
-            missing_elements=parsed["missing_elements"],
-            suggested_edits=parsed["suggested_edits"],
-            ai_insights=parsed["ai_insights"],
-        )
 
     return result_state
     

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+from io import BytesIO
 import uuid
 from datetime import datetime
 from pathlib import Path
+from pypdf import PdfReader
 
 from flask import (
     Flask,
@@ -18,6 +20,16 @@ from flask import (
 from interview_service import MockInterviewService
 from storage import SessionStorage
 from transcriber import AudioTranscriber
+
+def extract_pdf_text(pdf_bytes: bytes) -> str:
+    #if the uploaded file is emply, return error
+    if not pdf_bytes:
+        return "error: input pdf file"
+    #conver the pdf into a file object so the pdf reader can read it
+    reader = PdfReader(BytesIO(pdf_bytes))
+    #go through each page and extract the text, then join all the text into one string
+    pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
+    return "\n\n".join(text for text in pages_text if text).strip()
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -151,9 +163,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             gpa_raw = request.form.get("gpa", "").strip()
             notes = request.form.get("notes", "").strip()
 
-            essay_text, essay_file_name, essay_bytes_string = read_uploaded_text(
-                uploaded_file
-            )
+            usser_essay = 
+            
 
             sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
             try:
@@ -173,6 +184,36 @@ def create_app(test_config: dict | None = None) -> Flask:
                 gpa=gpa,
                 notes=notes,
                 essay_pdf_bytes=essay_bytes_string,
+            )
+
+
+            output = asyncio.run(
+                CMRun(
+                    user_essay="Essay about becoming next tony stark",
+                    essay_file_name="no",
+                    essay_pdf_bytes="",
+                    gpa=4.0,
+                    notes="super smart, mit material",
+                    user_interview_response="Great",
+                    intended_university="NYU",
+                    sat_score=1500
+                )
+    )
+
+    # Parse agent output and save to MongoDB
+        if output.result and session_id:
+            parsed = parse_agent_output(output.result)
+
+            mongo_uri = os.environ.get("MONGO_URI", "mongodb://mongodb:27017/appdb")
+            storage = SessionStorage("/tmp/sessions", mongo_uri=mongo_uri)
+
+            storage.save_analysis_result(
+                session_id=session_id,
+                applicant_score=parsed["applicant_score"],
+                strength=parsed["strength"],
+                missing_elements=parsed["missing_elements"],
+                suggested_edits=parsed["suggested_edits"],
+                ai_insights=parsed["ai_insights"],
             )
 
             # add simple metadata not handled by storage.py yet
