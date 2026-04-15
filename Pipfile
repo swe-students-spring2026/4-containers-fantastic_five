@@ -4,10 +4,20 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+black = "*"
+faster-whisper = "*"
+flask = "*"
+langchain-core = "*"
 langchain-openai = "*"
 langgraph = "*"
+pydantic = "*"
+pylint = "*"
+pytest = "*"
+pytest-flask = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
+
 [requires]
-python_version = "3.14"
+python_version = "3"

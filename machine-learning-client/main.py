@@ -49,3 +49,39 @@ async def CMRun(
     resumeGo  = workflow.compile()
     return await resumeGo.ainvoke(userState) #this will return the entire updated state(AppState) object
     
+
+if __name__ == "__main__":
+    import asyncio  # to create/manage the event loop for testing for this file.
+    from pypdf import PdfReader
+    from io import BytesIO
+
+    ###this is the test run for this appRun.py, you can import your own pdf resume files to see the output from my agent on your on terminal
+    def _extract_pdf_text(pdf_bytes: bytes) -> str:
+        if not pdf_bytes:
+            return "pdf uploading error, make sure it's a pdf file!"
+
+        reader = PdfReader(BytesIO(pdf_bytes))
+        pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
+        return "\n\n".join(text for text in pages_text if text).strip()
+
+    file_path="~/Desktop/filename.pdf"
+    # with open(file_path, 'rb') as f:
+    #         resume_pdf_bytes = f.read()
+
+    # extracted_resume_text = _extract_pdf_text(resume_pdf_bytes or b"")
+
+    output = asyncio.run(
+        CMRun(
+            user_essay="Essay about becoming next tony stark",
+            essay_file_name="no",
+            essay_pdf_bytes="",
+            gpa=4.0,
+            notes="super smart, mit material",
+            user_interview_response="Great",
+            intended_university="NYU",
+            sat_score=1500
+        )
+    )
+    #I used this fixed input for demo, it will later on be the AppState(check state.py) object that load the pdf from our frontend website
+    print(output['result'])
+

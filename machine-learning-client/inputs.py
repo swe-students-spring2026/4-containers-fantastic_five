@@ -19,10 +19,10 @@ class CMInputs(BaseModel):
     notes: str | None = None
     """The student's personal extra notes regarding the analysis; consider when not empty."""
 
-    sat_score: str | None = None
+    sat_score: int | None = None
     """The SAT score of this student."""
 
-    gpa: str | None = None
+    gpa: int | None = None
     """Current GPA of this student."""
 
     essay_pdf_bytes: bytes | None = None
