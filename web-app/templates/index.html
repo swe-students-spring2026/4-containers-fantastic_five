@@ -2,39 +2,33 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Mock Interview Recorder</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <title>CollegeMaxxing</title>
   </head>
   <body>
-    <main class="page">
-      <section class="panel">
-        <h1>Mock Interview</h1>
-        <button id="start-session" type="button">Start Interview</button>
-        <p id="session-status" class="status">No active session.</p>
-      </section>
+    <!-- Header -->
+    <header>
+      <h2>CollegeMaxxing</h2>
+    </header>
 
-      <section class="panel" id="question-panel" hidden>
-        <h2>Questions</h2>
-        <ol id="question-list"></ol>
-      </section>
+    <hr>
+    <!-- content -->
+    <main>
+      <h1>Get Ready for Your College Application!</h1>
 
-      <section class="panel" id="record-panel" hidden>
-        <h2>Recorder</h2>
-        <p class="status">Record one response covering both questions. Maximum time: 5 minutes.</p>
-        <div class="controls">
-          <button id="record-button" type="button" disabled>Start Recording</button>
-          <button id="stop-button" type="button" disabled>Stop Recording</button>
-        </div>
-        <p id="recording-status" class="status">Waiting to begin.</p>
-        <p id="timer" class="timer">00:00</p>
-      </section>
-
-      <section class="panel" id="transcript-panel" hidden>
-        <h2>Responses</h2>
-        <div id="responses"></div>
-      </section>
+      <p>
+        Upload your essay, complete a mock interview, and receive AI-powered feedback
+        to improve your chances of getting into your dream school.
+      </p>
+      <ul>
+        <li>Get a personalized application score</li>
+        <li>Practice real interview questions</li>
+        <li>Identify strengths and weaknesses</li>
+      </ul>
+      <!-- signup and login buttons -->
+      <div style="margin-top: 30px;">
+        <button onclick="window.location.href='/login'">Log In</button>
+        <button onclick="window.location.href='/signup'">Sign Up Free</button>
+      </div>
     </main>
-    <script src="{{ url_for('static', filename='app.js') }}"></script>
   </body>
 </html>
