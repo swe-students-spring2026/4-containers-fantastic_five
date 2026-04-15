@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Dashboard - CollegeMaxxing</title>
+  </head>
+  <body>
+    <!-- header -->
+    <div>
+    <span><a href="/">CollegeMaxxing</a></span>
+
+    <span style="float: right;">
+        {% if is_valid %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/logout">Log out</a>
+        {% else %}
+        <a href="/login">Log in</a>
+        <a href="/signup">Sign up</a>
+        {% endif %}
+    </span>
+    </div>
+
+    <hr>
+
+    <main>
+      <h1>Your Analyses</h1>
+
+      <!--tsart new analysis -->
+      <p>
+        <a href="/runs/new">+ Start new analysis</a>
+      </p>
+
+      <!--if runs exist -->
+      {% if runs and runs|length > 0 %}
+        {% for run in runs %}
+          <div style="margin-bottom: 20px;">
+
+            <!-- company name clickable -->
+            <h3>
+              <a href="/runs/{{ run._session_id }}">
+                {{ run.Company_name or "No Company Name" }}
+              </a>
+            </h3>
+            <!-- date -->
+            <p>{{ run.created_at }}</p>
+            <!-- status only -->
+            <p>{{ run.status }}</p>
+            <!-- view Button -->
+            <a href="/runs/{{ run._session_id }}">View</a>
+
+          </div>
+          <hr>
+        {% endfor %}
+      {% else %}
+        <!-- Empty state -->
+        <p>No analyses yet.</p>
+        <a href="/runs/new">Start your first analysis</a>
+
+      {% endif %}
+
+    </main>
+
+  </body>
+</html>

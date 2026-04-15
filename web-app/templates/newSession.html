@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>New Analysis - CollegeMaxxing</title>
+  </head>
+  <body>
+
+    <!-- header -->
+    <div>
+      <span><a href="/">CollegeMaxxing</a></span>
+
+      <span style="float: right;">
+        {% if is_valid %}
+          <a href="/dashboard">Dashboard</a>
+          <a href="/logout">Log out</a>
+        {% else %}
+          <a href="/login">Log in</a>
+          <a href="/signup">Sign up</a>
+        {% endif %}
+      </span>
+    </div>
+
+    <hr>
+
+    <main>
+      <h1>New Analysis</h1>
+      <p>
+        Fill in your application details. Then proceed to the mock interview
+        before running the final analysis.
+      </p>
+
+      <!-- Form (no submit yet) -->
+      <form enctype="multipart/form-data">
+
+        <!-- College essay upload -->
+        <div>
+          <label for="user_essay">Upload college essay *</label><br>
+          <input
+            type="file"
+            id="user_essay"
+            name="user_essay"
+            accept=".pdf,.docx,.doc,.txt"
+            required
+          >
+        </div>
+
+        <br>
+
+        <!-- Intended university -->
+        <div>
+          <label for="intended_university">Intended University *</label><br>
+          <input
+            type="text"
+            id="intended_university"
+            name="intended_university"
+            required
+            placeholder="Example: NYU"
+          >
+        </div>
+
+        <br>
+
+        <!-- SAT score -->
+        <div>
+          <label for="sat_score">SAT Score</label><br>
+          <input
+            type="number"
+            id="sat_score"
+            name="sat_score"
+            placeholder="Example: 1450"
+          >
+        </div>
+
+        <br>
+
+        <!-- GPA -->
+        <div>
+          <label for="gpa">GPA</label><br>
+          <input
+            type="text"
+            id="gpa"
+            name="gpa"
+            placeholder="Example: 3.8"
+          >
+        </div>
+
+        <br>
+
+        <!-- extra notes -->
+        <div>
+          <label for="notes">Extra Notes</label><br>
+          <textarea
+            id="notes"
+            name="notes"
+            rows="3"
+            placeholder="Anything else you want the analysis to consider..."
+          ></textarea>
+        </div>
+
+        <br>
+
+        <!-- go to interview -->
+        <p>
+          <button type="button" onclick="window.location.href='/interview'">
+            Proceed to Mock Interview
+          </button>
+        </p>
+
+      </form>
+    </main>
+
+  </body>
+</html>

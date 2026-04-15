@@ -5,8 +5,21 @@
     <title>Sign Up - CollegeMaxxing</title>
   </head>
   <body>
-    <!-- App name / simple header -->
-    <h2>CollegeMaxxing</h2>
+    <!-- header -->
+    <div>
+    <span><a href="/">CollegeMaxxing</a></span>
+
+    <span style="float: right;">
+        {% if is_valid %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/logout">Log out</a>
+        {% else %}
+        <a href="/login">Log in</a>
+        <a href="/signup">Sign up</a>
+        {% endif %}
+    </span>
+    </div>
+
     <hr>
 
     <main>
@@ -44,7 +57,6 @@
           <!-- Basic password hint -->
           <p>At least 8 characters, including a number and a letter.</p>
         </div>
-
         <br>
 
         <!-- Confirm password -->

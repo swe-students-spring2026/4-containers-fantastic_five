@@ -6,9 +6,19 @@
   </head>
   <body>
     <!-- Header -->
-    <header>
-      <h2>CollegeMaxxing</h2>
-    </header>
+    <div>
+    <span><a href="/">CollegeMaxxing</a></span>
+
+    <span style="float: right;">
+        {% if is_valid %}
+        <a href="/dashboard">Dashboard</a>
+        <a href="/logout">Log out</a>
+        {% else %}
+        <a href="/login">Log in</a>
+        <a href="/signup">Sign up</a>
+        {% endif %}
+    </span>
+    </div>
 
     <hr>
     <!-- content -->
