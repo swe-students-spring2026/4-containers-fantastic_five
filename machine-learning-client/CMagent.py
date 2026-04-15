@@ -3,7 +3,7 @@ from llmSetUp import GetLLM
 from langchain_core.prompts import ChatPromptTemplate #need it to make my request into langchain model redable ones
 
 
-class CWAgent(GetLLM):# inherited from myllm.py where I set up the model
+class CMAgent(GetLLM):# inherited from myllm.py where I set up the model
 
     def __init__(self, prompt: str, inputs):
         super().__init__(prompt=prompt)
@@ -33,7 +33,20 @@ class CWAgent(GetLLM):# inherited from myllm.py where I set up the model
 
         chain = prompt_template | self.llm #I pipe the prompt into the LLM to create an executable LangChain pipeline. output of left -> right basically
 
+        answer = await chain.ainvoke(
+            {   
+                "intended_university":inputs.intended_university,#the university that the student(user) wants to get in, which is the analysis for
+                "user_essay": inputs.user_essay, # this is the content on essay
+                "user_interview_response": inputs.user_interview_response, # this is student's resposne of the two questions about the intended university
+                "essay_file_name": inputs.essay_file_name, #just keep the file name for reference, not going to weight analysis
+                "notes": inputs.notes, #user's(student) personal extra notes regarding to the analysis, consider when it's not empty
+                "sat_score": inputs.sat_score, # the SAT score of this student
+                "gpa":inputs.gpa,#current gpa of this student 
+                "pdf_bytes_info": inputs.essay_pdf_bytes, #the original bytes of the essay file for backup, storing in the database. 
+            }
+        )
 
+        inputs.result = answer.content # I store the output of agent on varible {result} withing inputs object, which carries all the inputs of the student for each analysis session. On Flask frontend, we will use output['result'] to get it since the agent return a dictionary type.
 
         return inputs 
 
