@@ -132,9 +132,92 @@ def create_app(test_config: dict | None = None) -> Flask:
             sessions=sessions,
             runs=sessions,
         )
-
-    # ---------- interview routes ----------
     
+    @flask_app.route("/runs/new", methods=["GET", "POST"])
+    def new_session():
+        """
+        New session page.
+        Right now this mostly renders the form page.
+        If you later decide to POST here, this route is ready for it.
+        """
+        login_redirect = require_login()
+        if login_redirect:
+            return login_redirect
+
+        if request.method == "POST":
+            uploaded_file = request.files.get("user_essay")
+            intended_university = request.form.get("intended_university", "").strip()
+            sat_score_raw = request.form.get("sat_score", "").strip()
+            gpa_raw = request.form.get("gpa", "").strip()
+            notes = request.form.get("notes", "").strip()
+
+            essay_text, essay_file_name, essay_bytes_string = read_uploaded_text(
+                uploaded_file
+            )
+
+            sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
+            try:
+                gpa = float(gpa_raw) if gpa_raw else 0.0
+            except ValueError:
+                gpa = 0.0
+
+            session_id = str(uuid.uuid4())
+
+            session_payload = storage.create_session(
+                session_id=session_id,
+                user_id=current_user_id(),
+                intended_university=intended_university,
+                user_essay=essay_text,
+                essay_file_name=essay_file_name,
+                sat_score=sat_score,
+                gpa=gpa,
+                notes=notes,
+                essay_pdf_bytes=essay_bytes_string,
+            )
+
+            # add simple metadata not handled by storage.py yet
+            session_payload["created_at"] = datetime.utcnow().isoformat()
+            session_payload["status"] = "PENDING"
+            save_session_document(session_payload)
+
+            return redirect(url_for("session_detail", session_id=session_id))
+
+        return render_template("newSession.html", is_valid=True)
+
+    @flask_app.get("/interview")
+    def interview():
+        """Mock interview page."""
+        login_redirect = require_login()
+        if login_redirect:
+            return login_redirect
+
+        return render_template("interview.html", is_valid=True)
+
+    @flask_app.get("/runs/<session_id>")
+    def session_detail(session_id: str):
+        """Detail page for one saved analysis session."""
+        login_redirect = require_login()
+        if login_redirect:
+            return login_redirect
+
+        try:
+            raw_session = storage.get_session(session_id)
+        except FileNotFoundError:
+            return redirect(url_for("dashboard"))
+
+        # basic ownership check
+        if raw_session.get("userId") != current_user_id():
+            return redirect(url_for("dashboard"))
+
+        session_data = decorate_session(raw_session)
+
+        return render_template(
+            "sessionDetail.html",
+            is_valid=True,
+            session=session_data,
+        )
+    # ---------- interview routes ----------
+
     @flask_app.post("/api/sessions")
     def create_interview_session():
         """Create a mock interview session with questions."""
@@ -171,6 +254,58 @@ def create_app(test_config: dict | None = None) -> Flask:
             return jsonify({"error": "Session not found."}), 404
 
         return jsonify(response_record), 201
+    
+    # ---------- creating an analysis session ----------
+    @flask_app.post("/api/analysis/create")
+    def create_analysis_session():
+        """
+        Create a full analysis session from form data.
+        This is handy for the final submit button you plan to add later.
+        """
+        login_redirect = require_login()
+        if login_redirect:
+            return jsonify({"error": "Not logged in."}), 401
+
+        uploaded_file = request.files.get("user_essay")
+        intended_university = request.form.get("intended_university", "").strip()
+        sat_score_raw = request.form.get("sat_score", "").strip()
+        gpa_raw = request.form.get("gpa", "").strip()
+        notes = request.form.get("notes", "").strip()
+
+        essay_text, essay_file_name, essay_bytes_string = read_uploaded_text(
+            uploaded_file
+        )
+
+        sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
+        try:
+            gpa = float(gpa_raw) if gpa_raw else 0.0
+        except ValueError:
+            gpa = 0.0
+
+        session_id = str(uuid.uuid4())
+
+        session_payload = storage.create_session(
+            session_id=session_id,
+            user_id=current_user_id(),
+            intended_university=intended_university,
+            user_essay=essay_text,
+            essay_file_name=essay_file_name,
+            sat_score=sat_score,
+            gpa=gpa,
+            notes=notes,
+            essay_pdf_bytes=essay_bytes_string,
+        )
+
+        session_payload["created_at"] = datetime.utcnow().isoformat()
+        session_payload["status"] = "PENDING"
+        save_session_document(session_payload)
+
+        return jsonify(
+            {
+                "sessionId": session_id,
+                "redirectUrl": url_for("session_detail", session_id=session_id),
+            }
+        )
 
     
     return flask_app
