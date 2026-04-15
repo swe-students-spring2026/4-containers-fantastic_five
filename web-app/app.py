@@ -40,6 +40,73 @@ def create_app(test_config: dict | None = None) -> Flask:
     service = MockInterviewService(storage, transcriber)
     flask_app.config["INTERVIEW_SERVICE"] = service
     flask_app.config["SESSION_STORAGE"] = storage
+    # ---------- small helpers ----------
+
+    def is_logged_in() -> bool:
+        """Simple auth check based on Flask session."""
+        return bool(flask_session.get("user_id"))
+
+    def require_login():
+        """Redirect to login page if user is not logged in."""
+        if not is_logged_in():
+            return redirect(url_for("login"))
+        return None
+
+    def current_user_id() -> str:
+        """Return current user id from Flask session."""
+        return flask_session.get("user_id", "")
+
+    def decorate_session(raw_session: dict) -> dict:
+        """
+        Add a few display fields so the templates do not break.
+        storage.py does not fully manage created_at / status yet,
+        so we fill in defaults here.
+        """
+        session_copy = dict(raw_session)
+
+        if "created_at" not in session_copy:
+            session_copy["created_at"] = "Unknown"
+
+        if "status" not in session_copy:
+            # if score exists, treat it as complete; otherwise pending
+            if session_copy.get("applicant_score") is not None:
+                session_copy["status"] = "COMPLETE"
+            else:
+                session_copy["status"] = "PENDING"
+
+        return session_copy
+
+    def save_session_document(session_payload: dict) -> None:
+        """
+        Small helper to write the full session back to Mongo.
+        This uses the storage layer's Mongo collection directly so we can
+        preserve custom fields like created_at and status.
+        """
+        storage._sessions_collection().replace_one(  # pylint: disable=protected-access
+            {"_id": session_payload["sessionId"]},
+            storage._to_document(session_payload, "sessionId"),  # pylint: disable=protected-access
+            upsert=True,
+        )
+
+    def read_uploaded_text(uploaded_file) -> tuple[str, str, str]:
+        """
+        Best-effort file reader.
+        Keeps things simple for now. Works best with txt files.
+        PDF/DOCX bytes are still stored, even if text extraction is weak.
+        """
+        if uploaded_file is None or not uploaded_file.filename:
+            return "", "", ""
+
+        raw_bytes = uploaded_file.read()
+        file_name = uploaded_file.filename
+
+        # basic text decode for now
+        essay_text = raw_bytes.decode("utf-8", errors="ignore").strip()
+
+        # keep raw bytes in a string-safe format
+        essay_bytes_string = raw_bytes.decode("latin-1", errors="ignore")
+
+        return essay_text, file_name, essay_bytes_string
 
     # ---------- page routes ----------
 
