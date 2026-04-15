@@ -1,11 +1,9 @@
-"""Minimal Flask app for the mock interview workflow."""
-
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, url_for, session
 
 from interview_service import MockInterviewService
 from storage import SessionStorage
@@ -14,7 +12,6 @@ from transcriber import AudioTranscriber
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
-
     flask_app = Flask(__name__)
     data_dir = Path(flask_app.root_path) / "data" / "sessions"
     flask_app.config.update(
@@ -37,8 +34,9 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @flask_app.get("/")
     def index():
-        """Render the bare interview page."""
-        return render_template("index.html")
+        """Render the landing page."""
+        return render_template("login.html")
+        #return render_template("index.html")
 
     @flask_app.post("/api/sessions")
     def create_session():

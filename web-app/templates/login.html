@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Log In - CollegeMaxxing</title>
+  </head>
+  <body>
+
+    <!-- App name / header -->
+    <h2>CollegeMaxxing</h2>
+    <hr>
+
+    <main>
+      <!-- Login Page -->
+      <h1>Log In</h1>
+      <p>Access your account to continue.</p>
+
+      <!-- Login form -->
+      <form method="POST" action="/login" id="login-form" novalidate>
+
+        <!-- Email input -->
+        <div>
+          <label for="email">Email</label><br>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="you@example.com"
+            required
+            autocomplete="email"
+          >
+        </div>
+        <br>
+
+        <!-- Password input -->
+        <div>
+          <label for="password">Password</label><br>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+          >
+        </div>
+        <br>
+
+        <!-- Submit button -->
+        <button type="submit">Log In</button>
+      </form>
+
+      <!-- Link to signup -->
+      <p>
+        Don't have an account?
+        <a href="/signup">Create an account</a>
+      </p>
+    </main>
+
+  </body>
+</html>
