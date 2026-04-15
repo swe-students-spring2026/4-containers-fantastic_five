@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Analysis Details - CollegeMaxxing</title>
+  </head>
+  <body>
+
+    <!-- simple heder -->
+    <div>
+      <span><a href="/">CollegeMaxxing</a></span>
+
+      <span style="float: right;">
+        {% if is_valid %}
+          <a href="/dashboard">Dashboard</a>
+          <a href="/logout">Log out</a>
+        {% else %}
+          <a href="/login">Log in</a>
+          <a href="/signup">Sign up</a>
+        {% endif %}
+      </span>
+    </div>
+
+    <hr>
+
+    <main>
+      <!-- Back link -->
+      <p><a href="/dashboard">Back to dashboard</a></p>
+
+      <!-- Basic info -->
+      <h1>Analysis Details</h1>
+      <p>{{ session.created_at }}</p>
+      <p>Status: {{ session.status }}</p>
+
+      {% if session.status == "COMPLETE" %}
+
+        <!-- score -->
+        <h2>Applicant Score</h2>
+        <p>{{ session.applicant_score }}</p>
+
+        <!-- Strength -->
+        {% if session.strength %}
+          <h2>Strength</h2>
+          <ul>
+            {% for item in session.strength %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <!-- Missing Elements -->
+        {% if session.missing_elements %}
+          <h2>Missing Elements</h2>
+          <ul>
+            {% for item in session.missing_elements %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <!-- Suggested Edits -->
+        {% if session.suggested_edits %}
+          <h2>Suggested Edits</h2>
+          <ul>
+            {% for item in session.suggested_edits %}
+              <li>{{ item }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <!-- AI Insights -->
+        {% if session.ai_insights %}
+          <h2>AI Insights</h2>
+          <p>{{ session.ai_insights }}</p>
+        {% endif %}
+
+      {% else %}
+        <p>This analysis is not complete yet.</p>
+      {% endif %}
+    </main>
+
+  </body>
+</html>
