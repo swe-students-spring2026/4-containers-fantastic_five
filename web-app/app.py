@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-import os
+import os,asyncio
+import sys
 from io import BytesIO
 import uuid
 from datetime import datetime
 from pathlib import Path
+import parser
 from pypdf import PdfReader
 
 from flask import (
@@ -20,6 +22,14 @@ from flask import (
 from interview_service import MockInterviewService
 from storage import SessionStorage
 from transcriber import AudioTranscriber
+
+ML_CLIENT_DIR = Path(__file__).resolve().parents[1] / "machine-learning-client"
+if str(ML_CLIENT_DIR) not in sys.path:
+    sys.path.insert(0, str(ML_CLIENT_DIR))
+
+from main import CMRun
+
+
 
 def extract_pdf_text(pdf_bytes: bytes) -> str:
     #if the uploaded file is emply, return error
@@ -162,10 +172,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             sat_score_raw = request.form.get("sat_score", "").strip()
             gpa_raw = request.form.get("gpa", "").strip()
             notes = request.form.get("notes", "").strip()
+            essay_file_name =uploaded_file.filename if uploaded_file and uploaded_file.filename else "Not provided"
+            essay_pdf_bytes = uploaded_file.read()
+            usser_essay = extract_pdf_text(essay_pdf_bytes or b"")
 
-            usser_essay = 
             
-
             sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
             try:
                 gpa = float(gpa_raw) if gpa_raw else 0.0
@@ -174,31 +185,23 @@ def create_app(test_config: dict | None = None) -> Flask:
 
             session_id = str(uuid.uuid4())
 
-            session_payload = storage.create_session(
-                session_id=session_id,
-                user_id=current_user_id(),
-                intended_university=intended_university,
-                user_essay=essay_text,
-                essay_file_name=essay_file_name,
-                sat_score=sat_score,
-                gpa=gpa,
-                notes=notes,
-                essay_pdf_bytes=essay_bytes_string,
+            #PETER NEED TO ADD interview response here
+
+            session_payload = storage.create_session(session_id,current_user_id(),intended_university,usser_essay,essay_file_name,sat_score,gpa,notes,essay_pdf_bytes,
             )
 
-
-            output = asyncio.run(
+            output = asyncio.run( # The Agent is called here with all the provided inputs 
                 CMRun(
-                    user_essay="Essay about becoming next tony stark",
-                    essay_file_name="no",
-                    essay_pdf_bytes="",
-                    gpa=4.0,
-                    notes="super smart, mit material",
+                    user_essay=usser_essay,
+                    essay_file_name=essay_file_name,
+                    essay_pdf_bytes=essay_pdf_bytes,
+                    gpa=gpa,
+                    notes=notes,
                     user_interview_response="Great",
-                    intended_university="NYU",
-                    sat_score=1500
+                    intended_university=intended_university,
+                    sat_score=sat_score
                 )
-    )
+            )
 
     # Parse agent output and save to MongoDB
         if output.result and session_id:
