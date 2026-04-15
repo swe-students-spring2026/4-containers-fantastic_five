@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Sign Up - CollegeMaxxing</title>
+  </head>
+  <body>
+    <!-- App name / simple header -->
+    <h2>CollegeMaxxing</h2>
+    <hr>
+
+    <main>
+      <!-- Page title + description -->
+      <h1>Create your account</h1>
+      <p>Sign up to start improving your college application.</p>
+      <!-- Signup form -->
+      <form method="POST" action="/signup" id="signup-form" novalidate>
+        <!-- Email input -->
+        <div>
+          <label for="email">Email</label><br>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="you@example.com"
+            required
+            autocomplete="email"
+          >
+        </div>
+
+        <br>
+
+        <!-- Password input -->
+        <div>
+          <label for="password">Password</label><br>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="new-password"
+            minlength="8"
+          >
+          <!-- Basic password hint -->
+          <p>At least 8 characters, including a number and a letter.</p>
+        </div>
+
+        <br>
+
+        <!-- Confirm password -->
+        <div>
+          <label for="confirm_password">Confirm password</label><br>
+          <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            required
+            autocomplete="new-password"
+          >
+          <!-- Error if passwords don't match -->
+          <p id="password-match-error" style="display: none;">
+            Passwords do not match.
+          </p>
+        </div>
+
+        <br>
+
+        <!-- Submit button -->
+        <button type="submit">Create Account</button>
+      </form>
+
+      <!-- Link to login -->
+      <p>
+        Already have an account?
+        <a href="/login">Log in</a>
+      </p>
+    </main>
+    <script>
+      // Simple client-side validation for password match
+      document
+        .getElementById("signup-form")
+        .addEventListener("submit", function (e) {
+          var pw = document.getElementById("password").value;
+          var cpw = document.getElementById("confirm_password").value;
+          var err = document.getElementById("password-match-error");
+          // If passwords don't match, block submission
+          if (pw !== cpw) {
+            e.preventDefault();
+            err.style.display = "block";
+          } else {
+            err.style.display = "none";
+          }
+        });
+    </script>
+
+  </body>
+</html>
