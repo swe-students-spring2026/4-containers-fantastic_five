@@ -6,10 +6,11 @@ name = "pypi"
 [packages]
 pylint = "*"
 black = "*"
-flask = "*"
 pytest = "*"
 pytest-flask = "*"
 faster-whisper = "*"
+pypdf = "*"
+flask = "*"
 
 [dev-packages]
 
