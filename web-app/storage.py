@@ -87,14 +87,6 @@ class SessionStorage:
         document.pop("_id", None)
         return document
 
-    def get_session(self, session_id: str) -> dict[str, Any]:
-        """Load a saved session from MongoDB."""
-        document = self._collection().find_one({"_id": session_id})
-        if document is None:
-            raise FileNotFoundError(session_id)
-        document.pop("_id", None)
-        return document
-
     def link_session_to_profile(self, session_id: str, profile_id: str) -> None:
         """Store the two-way link between a profile and its interview session."""
         session_document = self.get_session(session_id)
@@ -107,6 +99,14 @@ class SessionStorage:
         self._profiles_collection().replace_one(
             {"_id": profile_id}, self._to_document(profile_document, "profileId")
         )
+
+    def get_session(self, session_id: str) -> dict[str, Any]:
+        """Load a saved session from MongoDB."""
+        document = self._collection().find_one({"_id": session_id})
+        if document is None:
+            raise FileNotFoundError(session_id)
+        document.pop("_id", None)
+        return document
 
     # pylint: disable=too-many-arguments,too-many-positional-arguments
     def save_response(
