@@ -45,60 +45,52 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @flask_app.get("/")
     def index():
-        """Render the landing page."""
+        """landing page"""
         return render_template("index.html", is_valid=is_logged_in())
     
     @flask_app.route("/login", methods=["GET", "POST"])
     def login():
-        """Basic login page."""
+        """ login page."""
         if request.method == "POST":
-            email = request.form.get("email", "").strip().lower()
-            password = request.form.get("password", "").strip()
-
+            email = request.form.get("email", "").lower()
+            password = request.form.get("password", "")
+            #ensure that both are inputed
             if not email or not password:
                 return render_template("login.html", is_valid=False)
-
             user = storage.get_user_by_email(email)
             if user is None:
                 return render_template("login.html", is_valid=False)
-
             # check password
             if user.get("password") != password:
                 return render_template("login.html", is_valid=False)
-
             flask_session["user_id"] = user["userId"]
             flask_session["email"] = user["email"]
-
             return redirect(url_for("dashboard"))
-
         return render_template("login.html", is_valid=is_logged_in())
     
     @flask_app.route("/signup", methods=["GET", "POST"])
     def signup():
         """Basic signup page."""
         if request.method == "POST":
+            #getdata from submitted form
             email = request.form.get("email", "").strip().lower()
             password = request.form.get("password", "").strip()
             confirm_password = request.form.get("confirm_password", "").strip()
-
+            #if the inputs are invalid just go back to the screen
             if not email or not password:
                 return render_template("signup.html", is_valid=False)
-
+            #check if the 2 passwords are the same
             if password != confirm_password:
                 return render_template("signup.html", is_valid=False)
-
             if storage.user_exists(email):
-                # if they already exist, just send them to login
+                #if they already exist, just send them to login
                 return redirect(url_for("login"))
-
             user_id = str(uuid.uuid4())
             storage.create_user(user_id=user_id, email=email, password=password)
-
             flask_session["user_id"] = user_id
             flask_session["email"] = email
-
             return redirect(url_for("dashboard"))
-
+        #if the request is GET
         return render_template("signup.html", is_valid=is_logged_in())
 
     @flask_app.get("/logout")
@@ -116,7 +108,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         user_sessions = storage.get_user_sessions(current_user_id())
 
-        # display-friendly fields
+        #display-friendly fields
         sessions = []
         for raw_session in user_sessions:
             decorated = decorate_session(raw_session)
@@ -124,14 +116,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             # dashboard templates often want a short id field
             decorated["_session_id"] = decorated.get("sessionId", "")
             sessions.append(decorated)
-
-        # pass both names in case your template still uses "runs"
-        return render_template(
-            "dashboard.html",
-            is_valid=True,
-            sessions=sessions,
-            runs=sessions,
-        )
+        #pass both names in case your template still uses "runs"
+        return render_template("dashboard.html", is_valid=True,sessions=sessions,runs=sessions,)
     
     @flask_app.route("/runs/new", methods=["GET", "POST"])
     def new_session():
