@@ -86,4 +86,3 @@ async def test_cmagent_call_invokes_run(mock_prompt_template, _mock_get_llm):
     output = await agent(inputs)
 
     assert output.result == "Test analysis result"
-
