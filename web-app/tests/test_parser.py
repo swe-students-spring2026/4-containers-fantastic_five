@@ -1,6 +1,6 @@
 """Tests for parser.py."""
 
-from parser import parse_agent_output
+from parser import parse_agent_output  # pylint: disable=import-error,deprecated-module
 
 
 def test_parse_agent_output_success():
