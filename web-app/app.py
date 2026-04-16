@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os,asyncio
 import sys
+import base64
 from io import BytesIO
 import uuid
 from datetime import datetime
@@ -231,6 +232,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             essay_file_name =uploaded_file.filename if uploaded_file and uploaded_file.filename else "Not provided"
             essay_pdf_bytes = uploaded_file.read()
             usser_essay = extract_pdf_text(essay_pdf_bytes or b"")
+            essay_pdf_b64 = base64.b64encode(essay_pdf_bytes).decode("utf-8") if essay_pdf_bytes else ""
 
             sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
             try:
@@ -240,54 +242,15 @@ def create_app(test_config: dict | None = None) -> Flask:
 
             session_id = str(uuid.uuid4())
 
-            session_payload = storage.create_session(session_id,current_user_id(),intended_university,usser_essay,essay_file_name,sat_score,gpa,notes,essay_pdf_bytes,
+            session_payload = storage.create_session(session_id,current_user_id(),intended_university,usser_essay,essay_file_name,sat_score,gpa,notes,essay_pdf_b64,
             )
 
-            # add metadata before running analysis so the detail page has stable fields
+            # Save session with PENDING status; analysis runs after the interview
             session_payload["created_at"] = datetime.utcnow().isoformat()
             session_payload["status"] = "PENDING"
             save_session_document(session_payload)
 
-            output = asyncio.run( # The Agent is called here with all the provided inputs 
-                CMRun(
-                user_essay=usser_essay,
-                essay_file_name=essay_file_name,
-                essay_pdf_bytes=essay_pdf_bytes,
-                gpa=gpa,
-                notes=notes,
-                user_interview_response="Great",
-                intended_university=intended_university,
-                sat_score=sat_score
-                )
-            )
-
-            # Parsed agent output into 5 variables then store to mongodb
-            output_result = (
-                output.get("result")
-                if isinstance(output, dict)
-                else getattr(output, "result", None)
-            )
-
-            if output_result and session_id:
-                parsed = parser.parse_agent_output(output_result)
-
-                updated_session = storage.save_analysis_result(
-                    session_id=session_id,
-                    applicant_score=parsed["applicant_score"],
-                    strength=parsed["strength"],
-                    missing_elements=parsed["missing_elements"],
-                    suggested_edits=parsed["suggested_edits"],
-                    ai_insights=parsed["ai_insights"],
-                )
-
-                # mark complete so sessionDetail template renders parsed sections
-                updated_session["status"] = "COMPLETE"
-                updated_session["created_at"] = updated_session.get(
-                    "created_at", session_payload["created_at"]
-                )
-                save_session_document(updated_session)
-
-            return redirect(url_for("session_detail", session_id=session_id))
+            return redirect(url_for("interview", session_id=session_id))
 
         return render_template("newSession.html", is_valid=True)
 
@@ -298,7 +261,60 @@ def create_app(test_config: dict | None = None) -> Flask:
         if login_redirect:
             return login_redirect
 
-        return render_template("interview.html", is_valid=True)
+        session_id = request.args.get("session_id", "")
+        return render_template("interview.html", is_valid=True, session_id=session_id)
+
+    @flask_app.post("/runs/<session_id>/analyze")
+    def analyze_session(session_id: str):
+        """Run the ML analysis on a saved session and redirect to its detail page."""
+        login_redirect = require_login()
+        if login_redirect:
+            return login_redirect
+
+        try:
+            raw_session = storage.get_session(session_id)
+        except FileNotFoundError:
+            return redirect(url_for("dashboard"))
+
+        if raw_session.get("userId") != current_user_id():
+            return redirect(url_for("dashboard"))
+
+        output = asyncio.run(
+            CMRun(
+                user_essay=raw_session.get("userEssay", ""),
+                essay_file_name=raw_session.get("essayFileName", ""),
+                essay_pdf_bytes=base64.b64decode(raw_session.get("essayPdfBytes", "") or ""),
+                gpa=raw_session.get("gpa", 0.0),
+                notes=raw_session.get("notes", ""),
+                user_interview_response=interview_output,
+                intended_university=raw_session.get("intendedUniversity", ""),
+                sat_score=raw_session.get("satScore", 0),
+            )
+        )
+
+        output_result = (
+            output.get("result")
+            if isinstance(output, dict)
+            else getattr(output, "result", None)
+        )
+
+        if output_result:
+            parsed = parser.parse_agent_output(output_result)
+            updated_session = storage.save_analysis_result(
+                session_id=session_id,
+                applicant_score=parsed["applicant_score"],
+                strength=parsed["strength"],
+                missing_elements=parsed["missing_elements"],
+                suggested_edits=parsed["suggested_edits"],
+                ai_insights=parsed["ai_insights"],
+            )
+            updated_session["status"] = "COMPLETE"
+            updated_session["created_at"] = updated_session.get(
+                "created_at", raw_session.get("created_at", "")
+            )
+            save_session_document(updated_session)
+
+        return redirect(url_for("session_detail", session_id=session_id))
 
     @flask_app.get("/runs/<session_id>")
     def session_detail(session_id: str):
