@@ -1,6 +1,6 @@
 """Tests for transcriber.py."""
 
-# pylint: disable=too-few-public-methods,wrong-import-position,import-error
+# pylint: disable=too-few-public-methods
 
 import sys
 from pathlib import Path
@@ -8,7 +8,9 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from transcriber import AudioTranscriber
+from transcriber import (
+    AudioTranscriber,
+)  # pylint: disable=wrong-import-position,import-error
 
 
 class _Segment:
@@ -17,18 +19,6 @@ class _Segment:
     def __init__(self, text):
         """Store fake segment text."""
         self.text = text
-
-
-class _Model:
-    """Fake whisper model."""
-
-    def __init__(self, segments):
-        """Store fake segment output."""
-        self._segments = segments
-
-    def transcribe(self, _path):
-        """Return deterministic fake segments."""
-        return self._segments, None
 
 
 def test_transcribe_returns_fallback_when_model_unavailable(tmp_path):
@@ -50,13 +40,16 @@ def test_transcribe_returns_completed_text(tmp_path):
     path = tmp_path / "audio.webm"
     path.write_bytes(b"fake")
 
+    class _Model:
+        """Fake whisper model."""
+
+        def transcribe(self, _path):
+            """Return deterministic fake segments."""
+            return [_Segment("hello"), _Segment("world")], None
+
     transcriber = AudioTranscriber()
 
-    with patch.object(
-        transcriber,
-        "_get_model",
-        return_value=_Model([_Segment("hello"), _Segment("world")]),
-    ):
+    with patch.object(transcriber, "_get_model", return_value=_Model()):
         text, status = transcriber.transcribe(path)
 
     assert status == "completed"
@@ -68,13 +61,16 @@ def test_transcribe_returns_no_speech_message(tmp_path):
     path = tmp_path / "audio.webm"
     path.write_bytes(b"fake")
 
+    class _Model:
+        """Fake whisper model with empty output."""
+
+        def transcribe(self, _path):
+            """Return blank segments."""
+            return [_Segment(""), _Segment("   ")], None
+
     transcriber = AudioTranscriber()
 
-    with patch.object(
-        transcriber,
-        "_get_model",
-        return_value=_Model([_Segment(""), _Segment("   ")]),
-    ):
+    with patch.object(transcriber, "_get_model", return_value=_Model()):
         text, status = transcriber.transcribe(path)
 
     assert status == "completed"
