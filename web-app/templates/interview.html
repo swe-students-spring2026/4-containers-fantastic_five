@@ -67,6 +67,15 @@
         <h2>Responses</h2>
         <div id="responses"></div>
       </div>
+
+      <hr>
+
+      <!-- Run analysis after interview -->
+      {% if session_id %}
+      <form method="POST" action="{{ url_for('analyze_session', session_id=session_id) }}">
+        <button type="submit">Run Analysis</button>
+      </form>
+      {% endif %}
     </main>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
