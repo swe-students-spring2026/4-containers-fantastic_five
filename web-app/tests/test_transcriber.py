@@ -1,6 +1,6 @@
 """Tests for transcriber.py."""
 
-# pylint: disable=too-few-public-methods,wrong-import-position,import-error
+# pylint: disable=too-few-public-methods,wrong-import-position,import-error,duplicate-code
 
 import sys
 from pathlib import Path
