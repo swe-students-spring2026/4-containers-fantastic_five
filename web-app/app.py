@@ -46,8 +46,11 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
     # pull text page by page
     pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
     return "\n\n".join(text for text in pages_text if text).strip()
+
+
 # temp interview text cache for now
 interview_output = ""
+
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -114,7 +117,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         """
         storage._sessions_collection().replace_one(  # pylint: disable=protected-access
             {"_id": session_payload["sessionId"]},
-            storage._to_document(session_payload, "sessionId"),  # pylint: disable=protected-access
+            storage._to_document(
+                session_payload, "sessionId"
+            ),  # pylint: disable=protected-access
             upsert=True,
         )
 
@@ -144,6 +149,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     def index():
         """landing page"""
         return render_template("index.html", is_valid=is_logged_in())
+
     @flask_app.route("/login", methods=["GET", "POST"])
     def login():
         """Login page."""
@@ -163,6 +169,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             flask_session["email"] = user["email"]
             return redirect(url_for("dashboard"))
         return render_template("login.html", is_valid=is_logged_in())
+
     @flask_app.route("/signup", methods=["GET", "POST"])
     def signup():
         """Basic signup page."""
@@ -185,7 +192,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             flask_session["user_id"] = user_id
             flask_session["email"] = email
             return redirect(url_for("dashboard"))
-        #if the request is GET
+        # if the request is GET
         return render_template("signup.html", is_valid=is_logged_in())
 
     @flask_app.get("/logout")
@@ -216,7 +223,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             sessions=sessions,
             runs=sessions,
         )
-    
+
     @flask_app.route("/runs/new", methods=["GET", "POST"])
     def new_session():
         """
@@ -242,7 +249,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             )
             essay_pdf_bytes = uploaded_file.read() if uploaded_file else b""
             user_essay = extract_pdf_text(essay_pdf_bytes or b"")
-            essay_pdf_b64 = base64.b64encode(essay_pdf_bytes).decode("utf-8") if essay_pdf_bytes else ""
+            essay_pdf_b64 = (
+                base64.b64encode(essay_pdf_bytes).decode("utf-8")
+                if essay_pdf_bytes
+                else ""
+            )
 
             sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
             try:
@@ -300,9 +311,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         essay_pdf_b64 = raw_session.get("essay_pdf_bytes", "")
         try:
-            essay_pdf_bytes = (
-                base64.b64decode(essay_pdf_b64) if essay_pdf_b64 else b""
-            )
+            essay_pdf_bytes = base64.b64decode(essay_pdf_b64) if essay_pdf_b64 else b""
         except (ValueError, TypeError):
             essay_pdf_bytes = b""
 
@@ -313,7 +322,9 @@ def create_app(test_config: dict | None = None) -> Flask:
                 essay_pdf_bytes=essay_pdf_bytes,
                 gpa=raw_session.get("gpa", 0.0),
                 notes=raw_session.get("notes", ""),
-                user_interview_response=raw_session.get("user_interview_response", interview_output),
+                user_interview_response=raw_session.get(
+                    "user_interview_response", interview_output
+                ),
                 intended_university=raw_session.get("intended_university", ""),
                 sat_score=raw_session.get("sat_score", 0),
             )
@@ -343,7 +354,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         else:
             # Even if parsing fails, mark as complete because analysis finished.
             raw_session["status"] = "COMPLETE"
-            raw_session["created_at"] = raw_session.get("created_at", datetime.utcnow().isoformat())
+            raw_session["created_at"] = raw_session.get(
+                "created_at", datetime.utcnow().isoformat()
+            )
             save_session_document(raw_session)
 
         return redirect(url_for("session_detail", session_id=session_id))
@@ -371,6 +384,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             is_valid=True,
             session=session_data,
         )
+
     # interview api routes
 
     @flask_app.post("/api/sessions")
@@ -422,7 +436,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             return jsonify({"error": "sessionId and audio are required."}), 400
 
         try:
-            response_record = flask_app.config["INTERVIEW_SERVICE"].store_audio_response(
+            response_record = flask_app.config[
+                "INTERVIEW_SERVICE"
+            ].store_audio_response(
                 session_id=session_id,
                 question_id=question_id,
                 uploaded_file=audio,
@@ -445,6 +461,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         ).strip()
 
         return jsonify(response_record), 201
+
     return flask_app
 
 
