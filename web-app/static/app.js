@@ -118,13 +118,10 @@ async function uploadRecording(blob) {
   }
 
   const payload = await response.json();
-  recordingStatus.textContent = `Transcript status: ${payload.transcriptStatus}. Redirecting...`;
+  recordingStatus.textContent = `Transcript status: ${payload.transcriptStatus}. You can now click Run Analysis below.`;
   await refreshSession();
   recordButton.hidden = true;
   stopButton.hidden = true;
-  window.setTimeout(() => {
-    window.location.href = `/runs/${activeSession.sessionId}`;
-  }, 1200);
 }
 
 async function refreshSession() {
