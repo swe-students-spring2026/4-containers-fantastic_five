@@ -1,46 +1,49 @@
+"""Tests for the CMAgent class."""
+
+# pylint: disable=too-few-public-methods
+
 import sys
-import types
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
+
 import pytest
 
-fake_llmsetup = types.ModuleType("llmSetUp")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from CMagent import CMAgent  # pylint: disable=wrong-import-position,import-error
 
 
-class FakeGetLLM:
-    def __init__(self, provider="openai", prompt=None):
-        self.provider = provider
-        self.prompt = prompt
+class _FakeAnswer:
+    """Simple container for fake model output."""
 
-    def get_llm(self):
-        return object()
-
-
-fake_llmsetup.GetLLM = FakeGetLLM
-sys.modules["llmSetUp"] = fake_llmsetup
-
-from CMagent import CMAgent
-
-
-class FakeAnswer:
     def __init__(self, content):
+        """Store fake content."""
         self.content = content
 
 
-class FakeChain:
-    async def ainvoke(self, payload):
-        return FakeAnswer("Test analysis result")
+class _FakeChain:
+    """Stub async chain that returns a deterministic answer."""
+
+    async def ainvoke(self, _payload):
+        """Return a fake answer object."""
+        return _FakeAnswer("Test analysis result")
 
 
-class FakePromptTemplate:
-    def __or__(self, other):
-        return FakeChain()
+class _FakePromptTemplate:
+    """Stub prompt template that pipes into the fake chain."""
+
+    def __or__(self, _other):
+        """Return the fake chain when piped."""
+        return _FakeChain()
 
 
 @pytest.mark.asyncio
+@patch.object(CMAgent, "get_llm", return_value=object())
 @patch("CMagent.ChatPromptTemplate")
-async def test_cmagent_run_sets_result(mock_prompt_template):
-    mock_prompt_template.from_messages.return_value = FakePromptTemplate()
+async def test_cmagent_run_sets_result(mock_prompt_template, _mock_get_llm):
+    """CMAgent.run should write the generated result onto the inputs object."""
+    mock_prompt_template.from_messages.return_value = _FakePromptTemplate()
 
     inputs = SimpleNamespace(
         intended_university="NYU",
@@ -61,9 +64,11 @@ async def test_cmagent_run_sets_result(mock_prompt_template):
 
 
 @pytest.mark.asyncio
+@patch.object(CMAgent, "get_llm", return_value=object())
 @patch("CMagent.ChatPromptTemplate")
-async def test_cmagent_call_invokes_run(mock_prompt_template):
-    mock_prompt_template.from_messages.return_value = FakePromptTemplate()
+async def test_cmagent_call_invokes_run(mock_prompt_template, _mock_get_llm):
+    """Calling the agent directly should delegate to run()."""
+    mock_prompt_template.from_messages.return_value = _FakePromptTemplate()
 
     inputs = SimpleNamespace(
         intended_university="NYU",
