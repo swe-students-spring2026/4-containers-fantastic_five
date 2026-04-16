@@ -33,7 +33,7 @@ class CMAgent(GetLLM):
                     "credential/odds/potentials to get into the intended "
                     "university he/she assigns. Based on these info "
                     "provided, give a detailed result/rating categorized in:\n"
-                    "1) Applicant Score (0-100)\n"
+                    "1) Applicant Score (you can only give one number from 1 to 100, make sure it's only a number)\n"
                     "2) Essay Strengths (bullet list)\n"
                     "3) Missing elements (bullet list)\n"
                     "4) Suggested Edits (bullet list)\n"

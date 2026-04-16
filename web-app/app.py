@@ -5,7 +5,6 @@ import base64
 import os
 import sys
 import uuid
-from datetime import datetime
 from io import BytesIO
 from pathlib import Path
 from random import sample
@@ -92,13 +91,10 @@ def create_app(test_config: dict | None = None) -> Flask:
     def decorate_session(raw_session: dict) -> dict:
         """
         Add a few display fields so the templates do not break.
-        storage.py does not fully manage created_at / status yet,
+        storage.py does not fully manage status yet,
         so we fill in defaults here.
         """
         session_copy = dict(raw_session)
-
-        if "created_at" not in session_copy:
-            session_copy["created_at"] = "Unknown"
 
         if "status" not in session_copy:
             # if score exists, treat it as complete; otherwise pending
@@ -113,7 +109,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         """
         Small helper to write the full session back to Mongo.
         This uses the storage layer's Mongo collection directly so we can
-        preserve custom fields like created_at and status.
+        preserve custom fields like status.
         """
         storage._sessions_collection().replace_one(  # pylint: disable=protected-access
             {"_id": session_payload["sessionId"]},
@@ -225,7 +221,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         )
 
     @flask_app.route("/runs/new", methods=["GET", "POST"])
-    def new_session():
+    def new_session():  # This handles every new Analysis, this part only get the inputs such as essay,uni,gpa, sat, and notes from frontend then carries to interview.
         """
         New session page.
         Right now this mostly renders the form page.
@@ -249,6 +245,10 @@ def create_app(test_config: dict | None = None) -> Flask:
             )
             essay_pdf_bytes = uploaded_file.read() if uploaded_file else b""
             user_essay = extract_pdf_text(essay_pdf_bytes or b"")
+            # `essay_pdf_bytes` is raw binary. Our session payload is saved as JSON/Mongo document,
+            # and raw `bytes` are not JSON-serializable (TypeError).
+            # So we convert bytes -> base64 text (UTF-8 string) before storing.
+            # Later in `analyze_session`, we decode base64 back into bytes before sending to the CMagent.
             essay_pdf_b64 = (
                 base64.b64encode(essay_pdf_bytes).decode("utf-8")
                 if essay_pdf_bytes
@@ -263,7 +263,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
             session_id = str(uuid.uuid4())
 
-            session_payload = storage.create_session(
+            session_payload = storage.create_session(  # we pre-save the inputs into mongodo here so later on mock can be retrived for Agent
                 session_id,
                 current_user_id(),
                 intended_university,
@@ -276,7 +276,6 @@ def create_app(test_config: dict | None = None) -> Flask:
             )
 
             # save first, analyze later
-            session_payload["created_at"] = datetime.utcnow().isoformat()
             session_payload["status"] = "PENDING"
             save_session_document(session_payload)
 
@@ -347,16 +346,10 @@ def create_app(test_config: dict | None = None) -> Flask:
                 ai_insights=parsed["ai_insights"],
             )
             updated_session["status"] = "COMPLETE"
-            updated_session["created_at"] = updated_session.get(
-                "created_at", raw_session.get("created_at", "")
-            )
             save_session_document(updated_session)
         else:
             # Even if parsing fails, mark as complete because analysis finished.
             raw_session["status"] = "COMPLETE"
-            raw_session["created_at"] = raw_session.get(
-                "created_at", datetime.utcnow().isoformat()
-            )
             save_session_document(raw_session)
 
         return redirect(url_for("session_detail", session_id=session_id))
@@ -426,7 +419,6 @@ def create_app(test_config: dict | None = None) -> Flask:
             essay_pdf_bytes="",
             questions=questions,
         )
-        session_data["created_at"] = datetime.utcnow().isoformat()
         session_data["status"] = "PENDING"
         save_session_document(session_data)
         return jsonify(session_data), 201
