@@ -1,13 +1,15 @@
+"""Main entry for the CollegeMaxxing ML workflow."""
+
+import asyncio
+from io import BytesIO
+
+from pypdf import PdfReader
+
 from CMagent import CMAgent
-import asyncio  # Needed to run the async ResumeGoRun() entry point from this standalone script.
 from inputs import CMInputs
-from langgraph.graph import (
-    StateGraph,
-    START,
-    END,
-)  # this is the workflow that will pass Agent STATE and update variables of it
+from langgraph.graph import END, START, StateGraph
 
-
+# main async run func for one analysis
 async def CMRun(
     user_essay: str,
     intended_university: str | None = None,
@@ -16,11 +18,12 @@ async def CMRun(
     notes: str | None = None,
     sat_score: int | None = None,
     gpa: float | None = None,
-    essay_pdf_bytes: bytes | None = None,
+    essay_pdf_bytes: bytes | None = None,  # pylint: disable=invalid-name,too-many-arguments,too-many-positional-arguments
 ):
-    # create an state that store resume analysis inputs for each run
-    userState = CMInputs(
-        user_essay=user_essay,  # resume content
+    """Run one college app analysis."""
+    # store one app's inputs in state
+    user_state = CMInputs(
+        user_essay=user_essay,
         essay_file_name=essay_file_name,
         essay_pdf_bytes=essay_pdf_bytes,
         gpa=gpa,
@@ -29,43 +32,39 @@ async def CMRun(
         intended_university=intended_university,
         sat_score=sat_score,
     )
-    agentNode = CMAgent(  # this node is set in workflow to pass State in to analysis resume with agent
+
+    # agent node does the actual review
+    agent_node = CMAgent(
         prompt=(
-            "You are an expert college application adviser. Analyze the provided information and return helpful, specific feedback regarding to the intended university for each analysis. "
-            "If essay or interview response details are incomplete, make reasonable assumptions and still provide an answer. "
-            "Do not ask the user to clarify or provide more details. "
-            "Return concise sections: Applicant Score (0-100 scale), Essay Strengths, Missing elements, Suggested Edits, and AI Insights. The score 1-100 should be very diverse,reasonable, which try your best to make it quantitative"
+            "You are an expert college application adviser. Analyze the "
+            "provided information and return helpful, specific feedback "
+            "about the intended university for each analysis. If essay or "
+            "interview details are incomplete, make reasonable assumptions "
+            "and still provide an answer. Do not ask the user to clarify "
+            "or provide more details. Return concise sections: Applicant "
+            "Score (0-100 scale), Essay Strengths, Missing Elements, "
+            "Suggested Edits, and AI Insights. The score should be diverse, "
+            "reasonable, and as quantitative as possible."
         ),
-        inputs=userState,
+        inputs=user_state,
     )
 
-    workflow = StateGraph(
-        CMInputs
-    )  # state is the main input/output for my langgraph workflow
-    workflow.add_node("chat", agentNode)
-
+    # state graph for one run
+    workflow = StateGraph(CMInputs)
+    workflow.add_node("chat", agent_node)
     workflow.add_edge(START, "chat")
-    workflow.add_edge(
-        "chat", END
-    )  # the goal is to put all the anaysis input and store agent output in state.result
+    workflow.add_edge("chat", END)
 
-    resumeGo = workflow.compile()
-    result_state = await resumeGo.ainvoke(
-        userState
-    )  # this will return the entire updated state(AppState) object
+    resume_go = workflow.compile()
+    result_state = await resume_go.ainvoke(user_state)
 
     return result_state
 
 
-if (
-    __name__ == "__main__"
-):  # this is just the demo run for the agent to check the output
-    import asyncio  # to create/manage the event loop for testing for this file.
-    from pypdf import PdfReader
-    from io import BytesIO
-
-    ###this is the test run for this appRun.py, you can import your own pdf resume files to see the output from my agent on your on terminal
+if __name__ == "__main__":
+    # quick local demo block
     def _extract_pdf_text(pdf_bytes: bytes) -> str:
+        """Pull text from a PDF for testing."""
         if not pdf_bytes:
             return "pdf uploading error, make sure it's a pdf file!"
 
@@ -73,17 +72,16 @@ if (
         pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
         return "\n\n".join(text for text in pages_text if text).strip()
 
-    file_path = "~/Desktop/filename.pdf"
-    # with open(file_path, 'rb') as f:
-    #         resume_pdf_bytes = f.read()
-
-    # extracted_resume_text = _extract_pdf_text(resume_pdf_bytes or b"")
+    FILE_PATH = "~/Desktop/filename.pdf"
+    # with open(FILE_PATH, "rb") as file_obj:
+    #     essay_pdf_bytes = file_obj.read()
+    # extracted_text = _extract_pdf_text(essay_pdf_bytes or b"")
 
     output = asyncio.run(
         CMRun(
             user_essay="Essay about becoming next tony stark",
             essay_file_name="no",
-            essay_pdf_bytes="",
+            essay_pdf_bytes=b"",
             gpa=4.0,
             notes="super smart, mit material",
             user_interview_response="Great",
@@ -91,5 +89,5 @@ if (
             sat_score=1500,
         )
     )
-    # I used this fixed input for demo, it will later on be the AppState(check state.py) object that load the pdf from our frontend website
+    # just prints demo output for now
     print(output["result"])
