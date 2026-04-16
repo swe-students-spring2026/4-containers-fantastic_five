@@ -9,6 +9,8 @@ const recordingStatus = document.getElementById("recording-status");
 const timerElement = document.getElementById("timer");
 const transcriptPanel = document.getElementById("transcript-panel");
 const responsesContainer = document.getElementById("responses");
+// Comes from /interview session_id=... when user already started an analysis flow.
+const existingSessionId = new URLSearchParams(window.location.search).get("session_id");
 
 let activeSession = null;
 let mediaRecorder = null;
@@ -19,7 +21,11 @@ let timerInterval = null;
 
 startSessionButton.addEventListener("click", async () => {
   sessionStatus.textContent = "Creating session...";
-  const response = await fetch("/api/sessions", { method: "POST" });
+  // Reuse existing session so we don't create an extra pending analysis.
+  const endpoint = existingSessionId
+    ? `/api/sessions?session_id=${encodeURIComponent(existingSessionId)}`
+    : "/api/sessions";
+  const response = await fetch(endpoint, { method: "POST" });
   activeSession = await response.json();
   renderSession(activeSession);
   startSessionButton.hidden = true;

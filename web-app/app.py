@@ -33,7 +33,7 @@ ML_CLIENT_DIR = Path(__file__).resolve().parents[1] / "machine-learning-client"
 if str(ML_CLIENT_DIR) not in sys.path:
     sys.path.insert(0, str(ML_CLIENT_DIR))
 
-from main import CMRun
+from main import cm_run
 
 
 # quick pdf text helper
@@ -316,7 +316,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             essay_pdf_bytes = b""
 
         output = asyncio.run(
-            CMRun(
+            cm_run(
                 user_essay=raw_session.get("user_essay", ""),
                 essay_file_name=raw_session.get("essay_file_name", ""),
                 essay_pdf_bytes=essay_pdf_bytes,
@@ -393,6 +393,24 @@ def create_app(test_config: dict | None = None) -> Flask:
         login_redirect = require_login()
         if login_redirect:
             return jsonify({"error": "Not logged in."}), 401
+
+        # If interview was launched from /runs/new, reuse that same analysis session.
+        existing_session_id = request.args.get("session_id", "").strip()
+        if existing_session_id:
+            try:
+                session_data = storage.get_session(existing_session_id)
+            except FileNotFoundError:
+                return jsonify({"error": "Session not found."}), 404
+
+            if session_data.get("userId") != current_user_id():
+                return jsonify({"error": "Forbidden"}), 403
+
+            # Only attach interview content here; don't create a second dashboard row.
+            session_data.setdefault("interview", {})
+            session_data["interview"]["questions"] = sample(QUESTION_BANK, 2)
+            session_data["interview"].setdefault("responses", [])
+            save_session_document(session_data)
+            return jsonify(session_data), 200
 
         questions = sample(QUESTION_BANK, 2)
         session_id = uuid.uuid4().hex

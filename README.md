@@ -50,6 +50,7 @@ This application uses three containers:
 
 2. **Machine Learning Client**
    - processes student application data
+   - Using Langchain/langgraph for the Agent structure
    - performs AI or LLM-based analysis
    - writes analysis results and metadata to MongoDB
 
