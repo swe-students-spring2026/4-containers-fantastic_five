@@ -18,7 +18,7 @@ async def CMRun(
     notes: str | None = None,
     sat_score: int | None = None,
     gpa: float | None = None,
-    essay_pdf_bytes: bytes | None = None,  # pylint: disable=invalid-name,too-many-arguments,too-many-positional-arguments
+    essay_pdf_bytes: bytes | None = None, 
 ):
     """Run one college app analysis."""
     # store one app's inputs in state
