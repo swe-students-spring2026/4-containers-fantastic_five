@@ -22,7 +22,8 @@ startSessionButton.addEventListener("click", async () => {
   const response = await fetch("/api/sessions", { method: "POST" });
   activeSession = await response.json();
   renderSession(activeSession);
-  sessionStatus.textContent = "Interview ready.";
+  startSessionButton.hidden = true;
+  sessionStatus.textContent = "Interview ready. You only need one recording.";
 });
 
 recordButton.addEventListener("click", async () => {
@@ -117,9 +118,13 @@ async function uploadRecording(blob) {
   }
 
   const payload = await response.json();
-  recordingStatus.textContent = `Transcript status: ${payload.transcriptStatus}`;
+  recordingStatus.textContent = `Transcript status: ${payload.transcriptStatus}. Redirecting...`;
   await refreshSession();
-  recordButton.disabled = false;
+  recordButton.hidden = true;
+  stopButton.hidden = true;
+  window.setTimeout(() => {
+    window.location.href = `/runs/${activeSession.sessionId}`;
+  }, 1200);
 }
 
 async function refreshSession() {
