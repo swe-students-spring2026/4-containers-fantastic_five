@@ -14,6 +14,7 @@ services:
       - mongodb
     environment:
       MONGO_URI: ${MONGO_URI:-mongodb://mongodb:27017/appdb}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
 
   web-app:
     build: ./web-app
@@ -26,6 +27,7 @@ services:
       - "5001:5000"
     environment:
       MONGO_URI: ${MONGO_URI:-mongodb://mongodb:27017/appdb}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
 
 volumes:
   mongo_data:
