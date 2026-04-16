@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import os,asyncio
+import os, asyncio
 import sys
 from io import BytesIO
 import uuid
@@ -31,14 +31,15 @@ from main import CMRun
 
 
 def extract_pdf_text(pdf_bytes: bytes) -> str:
-    #if the uploaded file is emply, return error
+    # if the uploaded file is emply, return error
     if not pdf_bytes:
         return "error: input pdf file"
-    #conver the pdf into a file object so the pdf reader can read it
+    # conver the pdf into a file object so the pdf reader can read it
     reader = PdfReader(BytesIO(pdf_bytes))
-    #go through each page and extract the text, then join all the text into one string
+    # go through each page and extract the text, then join all the text into one string
     pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
     return "\n\n".join(text for text in pages_text if text).strip()
+
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -105,7 +106,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         """
         storage._sessions_collection().replace_one(  # pylint: disable=protected-access
             {"_id": session_payload["sessionId"]},
-            storage._to_document(session_payload, "sessionId"),  # pylint: disable=protected-access
+            storage._to_document(
+                session_payload, "sessionId"
+            ),  # pylint: disable=protected-access
             upsert=True,
         )
 
@@ -135,14 +138,14 @@ def create_app(test_config: dict | None = None) -> Flask:
     def index():
         """landing page"""
         return render_template("index.html", is_valid=is_logged_in())
-    
+
     @flask_app.route("/login", methods=["GET", "POST"])
     def login():
-        """ login page."""
+        """login page."""
         if request.method == "POST":
             email = request.form.get("email", "").lower()
             password = request.form.get("password", "")
-            #ensure that both are inputed
+            # ensure that both are inputed
             if not email or not password:
                 return render_template("login.html", is_valid=False)
             user = storage.get_user_by_email(email)
@@ -155,30 +158,30 @@ def create_app(test_config: dict | None = None) -> Flask:
             flask_session["email"] = user["email"]
             return redirect(url_for("dashboard"))
         return render_template("login.html", is_valid=is_logged_in())
-    
+
     @flask_app.route("/signup", methods=["GET", "POST"])
     def signup():
         """Basic signup page."""
         if request.method == "POST":
-            #getdata from submitted form
+            # getdata from submitted form
             email = request.form.get("email", "").strip().lower()
             password = request.form.get("password", "").strip()
             confirm_password = request.form.get("confirm_password", "").strip()
-            #if the inputs are invalid just go back to the screen
+            # if the inputs are invalid just go back to the screen
             if not email or not password:
                 return render_template("signup.html", is_valid=False)
-            #check if the 2 passwords are the same
+            # check if the 2 passwords are the same
             if password != confirm_password:
                 return render_template("signup.html", is_valid=False)
             if storage.user_exists(email):
-                #if they already exist, just send them to login
+                # if they already exist, just send them to login
                 return redirect(url_for("login"))
             user_id = str(uuid.uuid4())
             storage.create_user(user_id=user_id, email=email, password=password)
             flask_session["user_id"] = user_id
             flask_session["email"] = email
             return redirect(url_for("dashboard"))
-        #if the request is GET
+        # if the request is GET
         return render_template("signup.html", is_valid=is_logged_in())
 
     @flask_app.get("/logout")
@@ -196,7 +199,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         user_sessions = storage.get_user_sessions(current_user_id())
 
-        #display-friendly fields
+        # display-friendly fields
         sessions = []
         for raw_session in user_sessions:
             decorated = decorate_session(raw_session)
@@ -204,9 +207,14 @@ def create_app(test_config: dict | None = None) -> Flask:
             # dashboard templates often want a short id field
             decorated["_session_id"] = decorated.get("sessionId", "")
             sessions.append(decorated)
-        #pass both names in case your template still uses "runs"
-        return render_template("dashboard.html", is_valid=True,sessions=sessions,runs=sessions,)
-    
+        # pass both names in case your template still uses "runs"
+        return render_template(
+            "dashboard.html",
+            is_valid=True,
+            sessions=sessions,
+            runs=sessions,
+        )
+
     @flask_app.route("/runs/new", methods=["GET", "POST"])
     def new_session():
         """
@@ -224,7 +232,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             sat_score_raw = request.form.get("sat_score", "").strip()
             gpa_raw = request.form.get("gpa", "").strip()
             notes = request.form.get("notes", "").strip()
-            essay_file_name =uploaded_file.filename if uploaded_file and uploaded_file.filename else "Not provided"
+            essay_file_name = (
+                uploaded_file.filename
+                if uploaded_file and uploaded_file.filename
+                else "Not provided"
+            )
             essay_pdf_bytes = uploaded_file.read()
             usser_essay = extract_pdf_text(essay_pdf_bytes or b"")
 
@@ -236,19 +248,30 @@ def create_app(test_config: dict | None = None) -> Flask:
 
             session_id = str(uuid.uuid4())
 
-            session_payload = storage.create_session(session_id,current_user_id(),intended_university,usser_essay,essay_file_name,sat_score,gpa,notes,essay_pdf_bytes,
+            session_payload = storage.create_session(
+                session_id,
+                current_user_id(),
+                intended_university,
+                usser_essay,
+                essay_file_name,
+                sat_score,
+                gpa,
+                notes,
+                essay_pdf_bytes,
             )
 
-            output = asyncio.run( # The Agent is called here with all the provided inputs 
-                CMRun(
-                user_essay=usser_essay,
-                essay_file_name=essay_file_name,
-                essay_pdf_bytes=essay_pdf_bytes,
-                gpa=gpa,
-                notes=notes,
-                user_interview_response="Great",
-                intended_university=intended_university,
-                sat_score=sat_score
+            output = (
+                asyncio.run(  # The Agent is called here with all the provided inputs
+                    CMRun(
+                        user_essay=usser_essay,
+                        essay_file_name=essay_file_name,
+                        essay_pdf_bytes=essay_pdf_bytes,
+                        gpa=gpa,
+                        notes=notes,
+                        user_interview_response="Great",
+                        intended_university=intended_university,
+                        sat_score=sat_score,
+                    )
                 )
             )
 
@@ -308,6 +331,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             is_valid=True,
             session=session_data,
         )
+
     # ---------- interview routes ----------
 
     @flask_app.post("/api/sessions")
@@ -337,7 +361,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             return jsonify({"error": "sessionId and audio are required."}), 400
 
         try:
-            response_record = flask_app.config["INTERVIEW_SERVICE"].store_audio_response(
+            response_record = flask_app.config[
+                "INTERVIEW_SERVICE"
+            ].store_audio_response(
                 session_id=session_id,
                 question_id=question_id,
                 uploaded_file=audio,
@@ -346,8 +372,7 @@ def create_app(test_config: dict | None = None) -> Flask:
             return jsonify({"error": "Session not found."}), 404
 
         return jsonify(response_record), 201
-    
-    
+
     return flask_app
 
 
@@ -358,23 +383,17 @@ if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
 
 
+# <!-- Form submit to create session and redirect to detail -->
+#       <form method="POST" action="{{ url_for('new_session') }}" enctype="multipart/form-data">
 
 
+# <button type="submit">
+#             Run Analysis
 
 
-<!-- Form submit to create session and redirect to detail -->
-      <form method="POST" action="{{ url_for('new_session') }}" enctype="multipart/form-data">
+# <!-- Form (no submit yet) -->
+#       <form enctype="multipart/form-data">
 
 
-
-
-<button type="submit">
-            Run Analysis
-
-
-<!-- Form (no submit yet) -->
-      <form enctype="multipart/form-data">
-
-
-<button type="button" onclick="window.location.href='/sessionDetail'">
-            Proceed to Mock Interview
+# <button type="button" onclick="window.location.href='/sessionDetail'">
+#             Proceed to Mock Interview
