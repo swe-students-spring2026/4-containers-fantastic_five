@@ -27,7 +27,7 @@ class CMInputs(BaseModel):
     sat_score: int | None = None
     """The SAT score of this student."""
 
-    gpa: int | None = None
+    gpa: float | None = None
     """Current GPA of this student."""
 
     essay_pdf_bytes: bytes | None = None

@@ -279,16 +279,24 @@ def create_app(test_config: dict | None = None) -> Flask:
         if raw_session.get("userId") != current_user_id():
             return redirect(url_for("dashboard"))
 
+        essay_pdf_b64 = raw_session.get("essay_pdf_bytes", "")
+        try:
+            essay_pdf_bytes = (
+                base64.b64decode(essay_pdf_b64) if essay_pdf_b64 else b""
+            )
+        except (ValueError, TypeError):
+            essay_pdf_bytes = b""
+
         output = asyncio.run(
             CMRun(
-                user_essay=raw_session.get("userEssay", ""),
-                essay_file_name=raw_session.get("essayFileName", ""),
-                essay_pdf_bytes=base64.b64decode(raw_session.get("essayPdfBytes", "") or ""),
+                user_essay=raw_session.get("user_essay", ""),
+                essay_file_name=raw_session.get("essay_file_name", ""),
+                essay_pdf_bytes=essay_pdf_bytes,
                 gpa=raw_session.get("gpa", 0.0),
                 notes=raw_session.get("notes", ""),
-                user_interview_response=interview_output,
-                intended_university=raw_session.get("intendedUniversity", ""),
-                sat_score=raw_session.get("satScore", 0),
+                user_interview_response=raw_session.get("user_interview_response", interview_output),
+                intended_university=raw_session.get("intended_university", ""),
+                sat_score=raw_session.get("sat_score", 0),
             )
         )
 
@@ -313,6 +321,11 @@ def create_app(test_config: dict | None = None) -> Flask:
                 "created_at", raw_session.get("created_at", "")
             )
             save_session_document(updated_session)
+        else:
+            # Even if parsing fails, mark as complete because analysis finished.
+            raw_session["status"] = "COMPLETE"
+            raw_session["created_at"] = raw_session.get("created_at", datetime.utcnow().isoformat())
+            save_session_document(raw_session)
 
         return redirect(url_for("session_detail", session_id=session_id))
 

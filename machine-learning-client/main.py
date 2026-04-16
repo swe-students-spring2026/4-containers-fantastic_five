@@ -9,11 +9,11 @@ from langgraph.graph import StateGraph, START, END #this is the workflow that wi
 async def CMRun(
     user_essay: str,
     intended_university: str | None = None,
-    user_interview_response: bytes | None = None,
+    user_interview_response: str | None = None,
     essay_file_name: str | None = None,
     notes: str | None = None,
-    sat_score: str | None = None,
-    gpa: str | None = None,
+    sat_score: int | None = None,
+    gpa: float | None = None,
     essay_pdf_bytes: bytes | None = None
 
 ):
