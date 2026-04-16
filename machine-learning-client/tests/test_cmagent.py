@@ -9,6 +9,16 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from CMagent import CMAgent  
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
+
+import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from CMagent import CMAgent  # pylint: disable=wrong-import-position,import-error
 
 
@@ -84,3 +94,4 @@ async def test_cmagent_call_invokes_run(mock_prompt_template, _mock_get_llm):
     output = await agent(inputs)
 
     assert output.result == "Test analysis result"
+    
