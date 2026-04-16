@@ -11,6 +11,8 @@ pytest-flask = "*"
 faster-whisper = "*"
 pypdf = "*"
 flask = "*"
+langchain-openai = "*"
+langgraph = "*"
 
 [dev-packages]
 
