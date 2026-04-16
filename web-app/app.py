@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 import parser
 from pypdf import PdfReader
+from random import sample
 
 from flask import (
     Flask,
@@ -20,6 +21,7 @@ from flask import (
 )
 
 from interview_service import MockInterviewService
+from questions import QUESTION_BANK
 from storage import SessionStorage
 from transcriber import AudioTranscriber
 
@@ -39,6 +41,7 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
     #go through each page and extract the text, then join all the text into one string
     pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
     return "\n\n".join(text for text in pages_text if text).strip()
+interview_output = "" 
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -325,7 +328,27 @@ def create_app(test_config: dict | None = None) -> Flask:
     @flask_app.post("/api/sessions")
     def create_interview_session():
         """Create a mock interview session with questions."""
-        session_data = flask_app.config["INTERVIEW_SERVICE"].create_session()
+        login_redirect = require_login()
+        if login_redirect:
+            return jsonify({"error": "Not logged in."}), 401
+
+        questions = sample(QUESTION_BANK, 2)
+        session_id = uuid.uuid4().hex
+        session_data = storage.create_session(
+            session_id=session_id,
+            user_id=current_user_id(),
+            intended_university="",
+            user_essay="",
+            essay_file_name="",
+            sat_score=0,
+            gpa=0.0,
+            notes="",
+            essay_pdf_bytes="",
+            questions=questions,
+        )
+        session_data["created_at"] = datetime.utcnow().isoformat()
+        session_data["status"] = "PENDING"
+        save_session_document(session_data)
         return jsonify(session_data), 201
 
     @flask_app.get("/api/sessions/<session_id>")
@@ -341,6 +364,8 @@ def create_app(test_config: dict | None = None) -> Flask:
     @flask_app.post("/api/interview/upload")
     def upload_audio():
         """Store one interview recording and its transcript."""
+        global interview_output
+
         session_id = request.form.get("sessionId", "").strip()
         question_id = request.form.get("questionId", "").strip() or "full_interview"
         audio = request.files.get("audio")
@@ -354,8 +379,21 @@ def create_app(test_config: dict | None = None) -> Flask:
                 question_id=question_id,
                 uploaded_file=audio,
             )
+            session_data = flask_app.config["SESSION_STORAGE"].get_session(session_id)
         except FileNotFoundError:
             return jsonify({"error": "Session not found."}), 404
+
+        question_lines = [
+            f"Question {index}: {question['text']}"
+            for index, question in enumerate(
+                session_data.get("interview", {}).get("questions", []),
+                start=1,
+            )
+            if question.get("text")
+        ]
+        interview_output = "\n".join(
+            question_lines + ["", "Transcript:", response_record["transcript"]]
+        ).strip()
 
         return jsonify(response_record), 201
     
