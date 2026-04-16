@@ -35,10 +35,10 @@
         {% for run in runs %}
           <div style="margin-bottom: 20px;">
 
-            <!-- company name clickable -->
+            <!-- intended university clickable -->
             <h3>
               <a href="/runs/{{ run._session_id }}">
-                {{ run.Company_name or "No Company Name" }}
+                {{ run.intended_university or "No College Name" }}
               </a>
             </h3>
             <!-- date -->
