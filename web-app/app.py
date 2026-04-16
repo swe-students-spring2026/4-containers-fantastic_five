@@ -321,9 +321,8 @@ def create_app(test_config: dict | None = None) -> Flask:
                 essay_pdf_bytes=essay_pdf_bytes,
                 gpa=raw_session.get("gpa", 0.0),
                 notes=raw_session.get("notes", ""),
-                user_interview_response=raw_session.get(
-                    "user_interview_response", interview_output
-                ),
+                user_interview_response=raw_session.get("user_interview_response")
+                or interview_output,
                 intended_university=raw_session.get("intended_university", ""),
                 sat_score=raw_session.get("sat_score", 0),
             )

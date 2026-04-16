@@ -41,13 +41,15 @@ class MockInterviewService:
         destination.parent.mkdir(parents=True, exist_ok=True)
         uploaded_file.save(destination)
         transcript, transcript_status = self.transcriber.transcribe(destination)
-        return self.storage.save_response(
+        response_record = self.storage.save_response(
             session_id=session_id,
             question_id=question_id,
             audio_filename=filename,
             transcript=transcript,
             transcript_status=transcript_status,
         )
+        self.storage.update_interview_response(session_id)
+        return response_record
 
     @staticmethod
     def _detect_extension(mimetype: str | None, filename: str | None) -> str:
