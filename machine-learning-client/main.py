@@ -33,6 +33,7 @@ async def CMRun(
         prompt=(
             "You are an expert college application adviser. Analyze the provided information and return helpful, specific feedback regarding to the intended university for each analysis. "
             "If essay or interview response details are incomplete, make reasonable assumptions and still provide an answer. "
+            "Also, you will receive an input of user_interview_response that contains both the question and user's answer of it. This has to be considered in your analysis and note some feedbacks on AI_insight "
             "Do not ask the user to clarify or provide more details. "
             "Return concise sections: Applicant Score (0-100 scale), Essay Strengths, Missing elements, Suggested Edits, and AI Insights. The score 1-100 should be very diverse,reasonable, which try your best to make it quantitative"
         ),
