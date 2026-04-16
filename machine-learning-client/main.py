@@ -1,9 +1,11 @@
 from CMagent import CMAgent
 import asyncio  # Needed to run the async ResumeGoRun() entry point from this standalone script.
 from inputs import CMInputs
-from langgraph.graph import StateGraph, START, END #this is the workflow that will pass Agent STATE and update variables of it
-
-
+from langgraph.graph import (
+    StateGraph,
+    START,
+    END,
+)  # this is the workflow that will pass Agent STATE and update variables of it
 
 
 async def CMRun(
@@ -14,48 +16,51 @@ async def CMRun(
     notes: str | None = None,
     sat_score: int | None = None,
     gpa: float | None = None,
-    essay_pdf_bytes: bytes | None = None
-
+    essay_pdf_bytes: bytes | None = None,
 ):
-    #create an state that store resume analysis inputs for each run
-    userState= CMInputs(
-            user_essay=user_essay, #resume content
-            essay_file_name=essay_file_name,
-            essay_pdf_bytes=essay_pdf_bytes,
-            gpa=gpa,
-            notes=notes,
-            user_interview_response=user_interview_response,
-            intended_university=intended_university,
-            sat_score=sat_score
-
-        )
-    agentNode  = CMAgent( # this node is set in workflow to pass State in to analysis resume with agent
+    # create an state that store resume analysis inputs for each run
+    userState = CMInputs(
+        user_essay=user_essay,  # resume content
+        essay_file_name=essay_file_name,
+        essay_pdf_bytes=essay_pdf_bytes,
+        gpa=gpa,
+        notes=notes,
+        user_interview_response=user_interview_response,
+        intended_university=intended_university,
+        sat_score=sat_score,
+    )
+    agentNode = CMAgent(  # this node is set in workflow to pass State in to analysis resume with agent
         prompt=(
             "You are an expert college application adviser. Analyze the provided information and return helpful, specific feedback regarding to the intended university for each analysis. "
             "If essay or interview response details are incomplete, make reasonable assumptions and still provide an answer. "
             "Also, you will receive an input of user_interview_response that contains both the question and user's answer of it. This has to be considered in your analysis and note some feedbacks on AI_insight "
             "Do not ask the user to clarify or provide more details. "
             "Return concise sections: Applicant Score (0-100 scale), Essay Strengths, Missing elements, Suggested Edits, and AI Insights. The score 1-100 should be very diverse,reasonable, which try your best to make it quantitative"
-        ), inputs=userState
+        ),
+        inputs=userState,
     )
 
-    
-    workflow = StateGraph(CMInputs) #state is the main input/output for my langgraph workflow
+    workflow = StateGraph(
+        CMInputs
+    )  # state is the main input/output for my langgraph workflow
     workflow.add_node("chat", agentNode)
 
-  
     workflow.add_edge(START, "chat")
-    workflow.add_edge("chat", END) #the goal is to put all the anaysis input and store agent output in state.result 
-   
-   
-    resumeGo  = workflow.compile()
-    result_state = await resumeGo.ainvoke(userState) #this will return the entire updated state(AppState) object
+    workflow.add_edge(
+        "chat", END
+    )  # the goal is to put all the anaysis input and store agent output in state.result
 
+    resumeGo = workflow.compile()
+    result_state = await resumeGo.ainvoke(
+        userState
+    )  # this will return the entire updated state(AppState) object
 
     return result_state
-    
 
-if __name__ == "__main__": # this is just the demo run for the agent to check the output
+
+if (
+    __name__ == "__main__"
+):  # this is just the demo run for the agent to check the output
     import asyncio  # to create/manage the event loop for testing for this file.
     from pypdf import PdfReader
     from io import BytesIO
@@ -69,7 +74,7 @@ if __name__ == "__main__": # this is just the demo run for the agent to check th
         pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
         return "\n\n".join(text for text in pages_text if text).strip()
 
-    file_path="~/Desktop/filename.pdf"
+    file_path = "~/Desktop/filename.pdf"
     # with open(file_path, 'rb') as f:
     #         resume_pdf_bytes = f.read()
 
@@ -84,9 +89,8 @@ if __name__ == "__main__": # this is just the demo run for the agent to check th
             notes="super smart, mit material",
             user_interview_response="Great",
             intended_university="NYU",
-            sat_score=1500
+            sat_score=1500,
         )
     )
-    #I used this fixed input for demo, it will later on be the AppState(check state.py) object that load the pdf from our frontend website
-    print(output['result'])
-
+    # I used this fixed input for demo, it will later on be the AppState(check state.py) object that load the pdf from our frontend website
+    print(output["result"])

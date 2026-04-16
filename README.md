@@ -23,6 +23,9 @@ This project is made up of three connected subsystems:
 
 [Blake Chang](https://github.com/louisvcarpet)
 [Sarya Sadi](https://github.com/saryassadi)
+[Tao Xie](https://github.com/tx715)
+[Hitaansh Jain](https://github.com/hitaanshjain)
+[Peter](https://github.com/pjm9792-ui)
 
 ## Project Structure
 
@@ -43,7 +46,7 @@ This project is made up of three connected subsystems:
 This application uses three containers:
 
 1. **MongoDB**
-   - stores users, uploaded content, sessions, and analysis results
+   - stores user profile, user details, uploaded content, sessions, and analysis results
 
 2. **Machine Learning Client**
    - processes student application data
@@ -100,6 +103,7 @@ cd 4-containers-fantastic_five
 ### 2. Create the `.env` file
 
 Create a `.env` file in the root directory using the example in the Environment Variables section above.
+Check the fantastic_five discord channel for our example .env with OPENAI_API_KEY for grading
 
 ### 3. Start all containers
 
@@ -198,15 +202,6 @@ MongoDB runs inside its own Docker container.
 
 No manual starter data import is required for the base version of this project. Users and sessions are created by the application while it is running.
 
-## Important Notes
-
-- Do not commit your real `.env` file to GitHub
-- only commit example configuration if needed
-- make sure all teammates contribute using their own GitHub accounts
-- use feature branches and pull requests when making changes
-
-## Course Instructions Reference
-
-For the full project expectations, see:
+##  Instructions 
 
 [instructions.md](./instructions.md)

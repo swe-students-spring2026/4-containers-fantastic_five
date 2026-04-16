@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-import os,asyncio
-import sys
+import asyncio
 import base64
-from io import BytesIO
+import os
+import sys
 import uuid
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
+from random import sample
+
 import parser
 from pypdf import PdfReader
-from random import sample
 
 from flask import (
     Flask,
@@ -26,6 +28,7 @@ from questions import QUESTION_BANK
 from storage import SessionStorage
 from transcriber import AudioTranscriber
 
+# let web app see ml client code
 ML_CLIENT_DIR = Path(__file__).resolve().parents[1] / "machine-learning-client"
 if str(ML_CLIENT_DIR) not in sys.path:
     sys.path.insert(0, str(ML_CLIENT_DIR))
@@ -33,16 +36,21 @@ if str(ML_CLIENT_DIR) not in sys.path:
 from main import CMRun
 
 
+# quick pdf text helper
 def extract_pdf_text(pdf_bytes: bytes) -> str:
-    #if the uploaded file is emply, return error
+    # empty upload case
     if not pdf_bytes:
         return "error: input pdf file"
-    #conver the pdf into a file object so the pdf reader can read it
+    # make bytes file-like
     reader = PdfReader(BytesIO(pdf_bytes))
-    #go through each page and extract the text, then join all the text into one string
+    # pull text page by page
     pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
     return "\n\n".join(text for text in pages_text if text).strip()
-interview_output = "" 
+
+
+# temp interview text cache for now
+interview_output = ""
+
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -65,7 +73,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     service = MockInterviewService(storage, transcriber)
     flask_app.config["INTERVIEW_SERVICE"] = service
     flask_app.config["SESSION_STORAGE"] = storage
-    # ---------- small helpers ----------
+    # small helper funcs
 
     def is_logged_in() -> bool:
         """Simple auth check based on Flask session."""
@@ -109,7 +117,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         """
         storage._sessions_collection().replace_one(  # pylint: disable=protected-access
             {"_id": session_payload["sessionId"]},
-            storage._to_document(session_payload, "sessionId"),  # pylint: disable=protected-access
+            storage._to_document(
+                session_payload, "sessionId"
+            ),  # pylint: disable=protected-access
             upsert=True,
         )
 
@@ -133,20 +143,20 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         return essay_text, file_name, essay_bytes_string
 
-    # ---------- page routes ----------
+    # page routes
 
     @flask_app.get("/")
     def index():
         """landing page"""
         return render_template("index.html", is_valid=is_logged_in())
-    
+
     @flask_app.route("/login", methods=["GET", "POST"])
     def login():
-        """ login page."""
+        """Login page."""
         if request.method == "POST":
             email = request.form.get("email", "").lower()
             password = request.form.get("password", "")
-            #ensure that both are inputed
+            # need both fields
             if not email or not password:
                 return render_template("login.html", is_valid=False)
             user = storage.get_user_by_email(email)
@@ -159,30 +169,30 @@ def create_app(test_config: dict | None = None) -> Flask:
             flask_session["email"] = user["email"]
             return redirect(url_for("dashboard"))
         return render_template("login.html", is_valid=is_logged_in())
-    
+
     @flask_app.route("/signup", methods=["GET", "POST"])
     def signup():
         """Basic signup page."""
         if request.method == "POST":
-            #getdata from submitted form
+            # grab form data
             email = request.form.get("email", "").strip().lower()
             password = request.form.get("password", "").strip()
             confirm_password = request.form.get("confirm_password", "").strip()
-            #if the inputs are invalid just go back to the screen
+            # missing input, stay here
             if not email or not password:
                 return render_template("signup.html", is_valid=False)
-            #check if the 2 passwords are the same
+            # pw match check
             if password != confirm_password:
                 return render_template("signup.html", is_valid=False)
             if storage.user_exists(email):
-                #if they already exist, just send them to login
+                # already signed up
                 return redirect(url_for("login"))
             user_id = str(uuid.uuid4())
             storage.create_user(user_id=user_id, email=email, password=password)
             flask_session["user_id"] = user_id
             flask_session["email"] = email
             return redirect(url_for("dashboard"))
-        #if the request is GET
+        # if the request is GET
         return render_template("signup.html", is_valid=is_logged_in())
 
     @flask_app.get("/logout")
@@ -200,18 +210,20 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         user_sessions = storage.get_user_sessions(current_user_id())
 
-        #display-friendly fields
+        # make data nicer for template
         sessions = []
         for raw_session in user_sessions:
             decorated = decorate_session(raw_session)
-
-            # dashboard templates often want a short id field
             decorated["_session_id"] = decorated.get("sessionId", "")
             sessions.append(decorated)
-        #pass both names in case your template still uses "runs"
-        return render_template("dashboard.html", is_valid=True,sessions=sessions,runs=sessions,)
-    
-    
+        # keep both names for template compat
+        return render_template(
+            "dashboard.html",
+            is_valid=True,
+            sessions=sessions,
+            runs=sessions,
+        )
+
     @flask_app.route("/runs/new", methods=["GET", "POST"])
     def new_session():
         """
@@ -224,15 +236,24 @@ def create_app(test_config: dict | None = None) -> Flask:
             return login_redirect
 
         if request.method == "POST":
+            # read app form stuff
             uploaded_file = request.files.get("user_essay")
             intended_university = request.form.get("intended_university", "").strip()
             sat_score_raw = request.form.get("sat_score", "").strip()
             gpa_raw = request.form.get("gpa", "").strip()
             notes = request.form.get("notes", "").strip()
-            essay_file_name =uploaded_file.filename if uploaded_file and uploaded_file.filename else "Not provided"
-            essay_pdf_bytes = uploaded_file.read()
-            usser_essay = extract_pdf_text(essay_pdf_bytes or b"")
-            essay_pdf_b64 = base64.b64encode(essay_pdf_bytes).decode("utf-8") if essay_pdf_bytes else ""
+            essay_file_name = (
+                uploaded_file.filename
+                if uploaded_file and uploaded_file.filename
+                else "Not provided"
+            )
+            essay_pdf_bytes = uploaded_file.read() if uploaded_file else b""
+            user_essay = extract_pdf_text(essay_pdf_bytes or b"")
+            essay_pdf_b64 = (
+                base64.b64encode(essay_pdf_bytes).decode("utf-8")
+                if essay_pdf_bytes
+                else ""
+            )
 
             sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
             try:
@@ -242,10 +263,19 @@ def create_app(test_config: dict | None = None) -> Flask:
 
             session_id = str(uuid.uuid4())
 
-            session_payload = storage.create_session(session_id,current_user_id(),intended_university,usser_essay,essay_file_name,sat_score,gpa,notes,essay_pdf_b64,
+            session_payload = storage.create_session(
+                session_id,
+                current_user_id(),
+                intended_university,
+                user_essay,
+                essay_file_name,
+                sat_score,
+                gpa,
+                notes,
+                essay_pdf_b64,
             )
 
-            # Save session with PENDING status; analysis runs after the interview
+            # save first, analyze later
             session_payload["created_at"] = datetime.utcnow().isoformat()
             session_payload["status"] = "PENDING"
             save_session_document(session_payload)
@@ -281,9 +311,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         essay_pdf_b64 = raw_session.get("essay_pdf_bytes", "")
         try:
-            essay_pdf_bytes = (
-                base64.b64decode(essay_pdf_b64) if essay_pdf_b64 else b""
-            )
+            essay_pdf_bytes = base64.b64decode(essay_pdf_b64) if essay_pdf_b64 else b""
         except (ValueError, TypeError):
             essay_pdf_bytes = b""
 
@@ -294,7 +322,9 @@ def create_app(test_config: dict | None = None) -> Flask:
                 essay_pdf_bytes=essay_pdf_bytes,
                 gpa=raw_session.get("gpa", 0.0),
                 notes=raw_session.get("notes", ""),
-                user_interview_response=raw_session.get("user_interview_response", interview_output),
+                user_interview_response=raw_session.get(
+                    "user_interview_response", interview_output
+                ),
                 intended_university=raw_session.get("intended_university", ""),
                 sat_score=raw_session.get("sat_score", 0),
             )
@@ -324,7 +354,9 @@ def create_app(test_config: dict | None = None) -> Flask:
         else:
             # Even if parsing fails, mark as complete because analysis finished.
             raw_session["status"] = "COMPLETE"
-            raw_session["created_at"] = raw_session.get("created_at", datetime.utcnow().isoformat())
+            raw_session["created_at"] = raw_session.get(
+                "created_at", datetime.utcnow().isoformat()
+            )
             save_session_document(raw_session)
 
         return redirect(url_for("session_detail", session_id=session_id))
@@ -341,7 +373,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         except FileNotFoundError:
             return redirect(url_for("dashboard"))
 
-        # basic ownership check
+        # dont let other users open this
         if raw_session.get("userId") != current_user_id():
             return redirect(url_for("dashboard"))
 
@@ -352,7 +384,8 @@ def create_app(test_config: dict | None = None) -> Flask:
             is_valid=True,
             session=session_data,
         )
-    # ---------- interview routes ----------
+
+    # interview api routes
 
     @flask_app.post("/api/sessions")
     def create_interview_session():
@@ -403,7 +436,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             return jsonify({"error": "sessionId and audio are required."}), 400
 
         try:
-            response_record = flask_app.config["INTERVIEW_SERVICE"].store_audio_response(
+            response_record = flask_app.config[
+                "INTERVIEW_SERVICE"
+            ].store_audio_response(
                 session_id=session_id,
                 question_id=question_id,
                 uploaded_file=audio,
@@ -412,6 +447,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         except FileNotFoundError:
             return jsonify({"error": "Session not found."}), 404
 
+        # build one text block for the model
         question_lines = [
             f"Question {index}: {question['text']}"
             for index, question in enumerate(
@@ -425,8 +461,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         ).strip()
 
         return jsonify(response_record), 201
-    
-   
+
     return flask_app
 
 
