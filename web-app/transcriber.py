@@ -15,18 +15,18 @@ class AudioTranscriber:
 
     def transcribe(self, audio_path: str | Path) -> tuple[str, str]:
         """Transcribe audio, or return a clear fallback message."""
-        path = Path(audio_path)
+        path = Path(audio_path)  # turn whatever came in into a real file path
         try:
             model = self._get_model()
         except (ImportError, OSError) as exc:
-            message = (
+            message = (  # if Whisper is not installed locally, return a readable fallback instead of crashing
                 "Transcription unavailable. Install faster-whisper and ffmpeg to "
                 f"enable local transcription. Details: {exc}"
             )
             return message, "unavailable"
 
-        segments, _ = model.transcribe(str(path))
-        text = " ".join(segment.text.strip() for segment in segments).strip()
+        segments, _ = model.transcribe(str(path))  # Whisper gives back chunks, not one finished string
+        text = " ".join(segment.text.strip() for segment in segments).strip()  # stitch all the chunks together
         if not text:
             text = "No speech detected in the uploaded audio."
         return text, "completed"
@@ -38,5 +38,5 @@ class AudioTranscriber:
                 WhisperModel,
             )
 
-            self._model = WhisperModel(self.model_name)
+            self._model = WhisperModel(self.model_name)  # load once so we do not reinitialize the model every call
         return self._model

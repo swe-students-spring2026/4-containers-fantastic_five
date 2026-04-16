@@ -9,8 +9,7 @@ const recordingStatus = document.getElementById("recording-status");
 const timerElement = document.getElementById("timer");
 const transcriptPanel = document.getElementById("transcript-panel");
 const responsesContainer = document.getElementById("responses");
-// Comes from /interview session_id=... when user already started an analysis flow.
-const existingSessionId = new URLSearchParams(window.location.search).get("session_id");
+const existingSessionId = new URLSearchParams(window.location.search).get("session_id"); // reuse the existing analysis session if the form already created one
 
 let activeSession = null;
 let mediaRecorder = null;
@@ -21,14 +20,13 @@ let timerInterval = null;
 
 startSessionButton.addEventListener("click", async () => {
   sessionStatus.textContent = "Creating session...";
-  // Reuse existing session so we don't create an extra pending analysis.
   const endpoint = existingSessionId
     ? `/api/sessions?session_id=${encodeURIComponent(existingSessionId)}`
-    : "/api/sessions";
+    : "/api/sessions"; // fallback for the interview-only flow
   const response = await fetch(endpoint, { method: "POST" });
   activeSession = await response.json();
   renderSession(activeSession);
-  startSessionButton.hidden = true;
+  startSessionButton.hidden = true; // hide it so the user does not create/start twice
   sessionStatus.textContent = "Interview ready. You only need one recording.";
 });
 
@@ -38,7 +36,7 @@ recordButton.addEventListener("click", async () => {
   }
 
   try {
-    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true }); // ask the browser for microphone access
   } catch (error) {
     recordingStatus.textContent = `Microphone access failed: ${error.message}`;
     return;
@@ -52,17 +50,17 @@ recordButton.addEventListener("click", async () => {
 
   mediaRecorder.addEventListener("dataavailable", (event) => {
     if (event.data.size > 0) {
-      recordedChunks.push(event.data);
+      recordedChunks.push(event.data); // keep each audio chunk until the recording stops
     }
   });
 
   mediaRecorder.addEventListener("stop", async () => {
-    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+    const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" }); // turn the chunks into one uploadable file
     await uploadRecording(blob);
     cleanupRecorder();
   });
 
-  mediaRecorder.start();
+  mediaRecorder.start(); // start one combined recording for both questions
   recordButton.disabled = true;
   stopButton.disabled = false;
   recordingStatus.textContent = "Recording in progress...";
@@ -108,12 +106,12 @@ function renderSession(session) {
 
 async function uploadRecording(blob) {
   const formData = new FormData();
-  formData.append("sessionId", activeSession.sessionId);
-  formData.append("audio", blob, "full_interview.webm");
+  formData.append("sessionId", activeSession.sessionId); // tell Flask which session this recording belongs to
+  formData.append("audio", blob, "full_interview.webm"); // save it as one combined interview file
 
   const response = await fetch("/api/interview/upload", {
     method: "POST",
-    body: formData,
+    body: formData, // backend will save the file and run transcription
   });
 
   if (!response.ok) {
@@ -125,13 +123,13 @@ async function uploadRecording(blob) {
 
   const payload = await response.json();
   recordingStatus.textContent = `Transcript status: ${payload.transcriptStatus}. You can now click Run Analysis below.`;
-  await refreshSession();
-  recordButton.hidden = true;
-  stopButton.hidden = true;
+  await refreshSession(); // pull the latest saved transcript back into the page
+  recordButton.hidden = true; // one recording only
+  stopButton.hidden = true; // one recording only
 }
 
 async function refreshSession() {
-  const response = await fetch(`/api/sessions/${activeSession.sessionId}`);
+  const response = await fetch(`/api/sessions/${activeSession.sessionId}`); // get the saved session after upload
   activeSession = await response.json();
   renderResponses(activeSession);
 }
