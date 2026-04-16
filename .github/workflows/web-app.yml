@@ -1,0 +1,34 @@
+on: [push, pull_request]
+
+jobs:
+  web-app:
+    runs-on: ubuntu-latest
+
+    defaults:
+      # run cmds in web-app folder
+      run:
+        working-directory: web-app
+
+    steps:
+      # get repo code
+      - uses: actions/checkout@v4
+
+      # setup python ver
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      # install dependencies
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install black pylint
+
+      # lint check
+      - name: Lint
+        run: pylint **/*.py
+
+      # format check (black)
+      - name: Format check
+        run: black --check .
