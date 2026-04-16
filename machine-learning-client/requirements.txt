@@ -7,3 +7,4 @@ pydantic
 python-dotenv
 pypdf
 pytest
+pytest-asyncio

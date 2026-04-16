@@ -11,7 +11,7 @@ from langgraph.graph import END, START, StateGraph
 
 
 # main async run func
-async def cm_run( #we only need 8 inputs for each analysis
+async def cm_run(  # we only need 8 inputs for each analysis
     user_essay: str,
     intended_university: str | None = None,
     user_interview_response: str | None = None,
@@ -35,7 +35,7 @@ async def cm_run( #we only need 8 inputs for each analysis
     )
 
     # agent node does the actual review, given by the prompt I restrict him
-    agent_node = CMAgent( 
+    agent_node = CMAgent(
         prompt=(
             "You are an expert college application adviser. Analyze the "
             "provided information and return helpful, specific feedback "
@@ -50,7 +50,7 @@ async def cm_run( #we only need 8 inputs for each analysis
         inputs=user_state,
     )
 
-    #We chain the workflow up by throwing inputs object through each node to get variable inside updated
+    # We chain the workflow up by throwing inputs object through each node to get variable inside updated
     workflow = StateGraph(CMInputs)
     workflow.add_node("chat", agent_node)
     workflow.add_edge(START, "chat")

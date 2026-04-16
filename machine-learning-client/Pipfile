@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 pylint = "*"
 black = "*"
+pytest = "*"
+pytest-asyncio = "*"
 langchain-openai = "*"
 python-dotenv = "*"
 langchain-core = "*"

@@ -221,7 +221,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         )
 
     @flask_app.route("/runs/new", methods=["GET", "POST"])
-    def new_session(): #This handles every new Analysis, this part only get the inputs such as essay,uni,gpa, sat, and notes from frontend then carries to interview. 
+    def new_session():  # This handles every new Analysis, this part only get the inputs such as essay,uni,gpa, sat, and notes from frontend then carries to interview.
         """
         New session page.
         Right now this mostly renders the form page.
@@ -263,7 +263,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
             session_id = str(uuid.uuid4())
 
-            session_payload = storage.create_session( #we pre-save the inputs into mongodo here so later on mock can be retrived for Agent 
+            session_payload = storage.create_session(  # we pre-save the inputs into mongodo here so later on mock can be retrived for Agent
                 session_id,
                 current_user_id(),
                 intended_university,
