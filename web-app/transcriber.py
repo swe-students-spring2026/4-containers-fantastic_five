@@ -19,14 +19,14 @@ class AudioTranscriber:
         try:
             model = self._get_model()
         except (ImportError, OSError) as exc:
-            message = (  # if Whisper is not installed locally, return a readable fallback instead of crashing
+            message = (  # return a readable fallback instead of crashing
                 "Transcription unavailable. Install faster-whisper and ffmpeg to "
                 f"enable local transcription. Details: {exc}"
             )
             return message, "unavailable"
 
-        segments, _ = model.transcribe(str(path))  # Whisper gives back chunks, not one finished string
-        text = " ".join(segment.text.strip() for segment in segments).strip()  # stitch all the chunks together
+        segments, _ = model.transcribe(str(path))  # Whisper gives back chunks
+        text = " ".join(segment.text.strip() for segment in segments).strip()
         if not text:
             text = "No speech detected in the uploaded audio."
         return text, "completed"
@@ -38,5 +38,5 @@ class AudioTranscriber:
                 WhisperModel,
             )
 
-            self._model = WhisperModel(self.model_name)  # load once so we do not reinitialize the model every call
+            self._model = WhisperModel(self.model_name)  # load once and reuse it
         return self._model

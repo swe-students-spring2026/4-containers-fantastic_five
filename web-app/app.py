@@ -444,7 +444,7 @@ def create_app(test_config: dict | None = None) -> Flask:
     @flask_app.post("/api/interview/upload")
     def upload_audio():
         """Store one interview recording and its transcript."""
-        global interview_output  # keep the latest formatted interview text in memory for the analyzer
+        global interview_output  # keep the latest interview text in memory
 
         session_id = request.form.get("sessionId", "").strip()
         question_id = request.form.get("questionId", "").strip() or "full_interview"
@@ -461,7 +461,7 @@ def create_app(test_config: dict | None = None) -> Flask:
                 question_id=question_id,
                 uploaded_file=audio,
             )
-            session_data = flask_app.config["SESSION_STORAGE"].get_session(session_id)  # load the same session again so we can grab the saved questions
+            session_data = flask_app.config["SESSION_STORAGE"].get_session(session_id)
         except FileNotFoundError:
             return jsonify({"error": "Session not found."}), 404
 
@@ -474,9 +474,11 @@ def create_app(test_config: dict | None = None) -> Flask:
             )
             if question.get("text")
         ]
-        interview_output = "\n".join(  # final string is questions first, then the transcript
-            question_lines + ["", "Transcript:", response_record["transcript"]]
-        ).strip()
+        interview_output = (
+            "\n".join(  # final string is questions first, then the transcript
+                question_lines + ["", "Transcript:", response_record["transcript"]]
+            ).strip()
+        )
 
         return jsonify(response_record), 201
 
