@@ -23,6 +23,9 @@ This project is made up of three connected subsystems:
 
 [Blake Chang](https://github.com/louisvcarpet)
 [Sarya Sadi](https://github.com/saryassadi)
+[Tao Xie](https://github.com/tx715)
+[Hitaansh Jain](https://github.com/hitaanshjain)
+[Peter](https://github.com/pjm9792-ui)
 
 ## Project Structure
 
@@ -43,7 +46,7 @@ This project is made up of three connected subsystems:
 This application uses three containers:
 
 1. **MongoDB**
-   - stores users, uploaded content, sessions, and analysis results
+   - stores user profile, user details, uploaded content, sessions, and analysis results
 
 2. **Machine Learning Client**
    - processes student application data
@@ -59,15 +62,7 @@ This application uses three containers:
 
 This app **does** require a `.env` file for API keys and MongoDB configuration.
 
-An example file is included at the project root: `.env.example`.
-
-Create your local `.env` by copying it:
-
-```bash
-cp .env.example .env
-```
-
-Then update at least `OPENAI_API_KEY` with a real key.
+Create a file named `.env` in the root of the project.
 
 Example `.env` file:
 
@@ -81,7 +76,7 @@ SECRET_KEY=dev
 
 ### Notes
 
-- `OPENAI_API_KEY` is required for the AI analysis features (without it, analysis will fail)
+- `OPENAI_API_KEY` is required for the AI analysis features
 - `MONGO_URI` points to the MongoDB container when running with Docker Compose
 - `MONGO_DBNAME` is the name of the MongoDB database used by the application
 - `SECRET_KEY` is used by Flask for session management
@@ -98,39 +93,6 @@ Before running the project, make sure you have installed:
 
 ## How to Run the Full Project
 
-### First-time quick setup (tiny checklist)
-
-If this is your first run on a new machine:
-
-1. Make sure Docker is running and available:
-
-```bash
-docker --version
-docker compose version
-```
-
-2. Install Python dependencies from each service `Pipfile` (optional for local dev, not required for Docker-only run):
-
-```bash
-cd web-app && pipenv install
-cd ../machine-learning-client && pipenv install
-cd ..
-```
-
-3. Create your local `.env` from the template and add your OpenAI key:
-
-```bash
-cp .env.example .env
-```
-
-4. Start all services:
-
-```bash
-docker compose up --build
-```
-
-5. Open the app at `http://localhost:5001`.
-
 ### 1. Clone the repository
 
 ```bash
@@ -140,15 +102,8 @@ cd 4-containers-fantastic_five
 
 ### 2. Create the `.env` file
 
-Create a `.env` file from the template and set your key:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and set:
-
-- `OPENAI_API_KEY=...`
+Create a `.env` file in the root directory using the example in the Environment Variables section above.
+Check the fantastic_five discord channel for our example .env with OPENAI_API_KEY for grading
 
 ### 3. Start all containers
 
@@ -171,8 +126,6 @@ docker compose down
 ```
 
 ## Docker Compose Services
-
-command: Docker compose up --build
 
 The `compose.yaml` file starts the following services:
 
@@ -249,15 +202,6 @@ MongoDB runs inside its own Docker container.
 
 No manual starter data import is required for the base version of this project. Users and sessions are created by the application while it is running.
 
-## Important Notes
-
-- Do not commit your real `.env` file to GitHub
-- only commit example configuration if needed
-- make sure all teammates contribute using their own GitHub accounts
-- use feature branches and pull requests when making changes
-
-## Course Instructions Reference
-
-For the full project expectations, see:
+##  Instructions 
 
 [instructions.md](./instructions.md)
