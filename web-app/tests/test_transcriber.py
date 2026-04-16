@@ -8,7 +8,9 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from transcriber import AudioTranscriber  # pylint: disable=wrong-import-position,import-error
+from transcriber import (
+    AudioTranscriber,
+)  # pylint: disable=wrong-import-position,import-error
 
 
 class _Segment:
