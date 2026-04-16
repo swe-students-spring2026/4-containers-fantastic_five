@@ -1,14 +1,14 @@
 """Agent wrapper for running college app analysis."""
 
 # from request_prompt import FILTER_PROMPT | will work on prompt engineering soon
-from langchain_core.prompts import (
-    ChatPromptTemplate,
-)  # need it to make my request into langchain model redable ones
+# need it to make my request into langchain model redable ones
+from langchain_core.prompts import ChatPromptTemplate
 
 from llmSetUp import GetLLM
 
 
-class CMAgent(GetLLM):  # inherited from myllm.py where I set up the model
+# inherited from myllm.py where I set up the model
+class CMAgent(GetLLM):
     """Simple agent wrapper."""
 
     def __init__(self, prompt: str, inputs):
@@ -24,7 +24,8 @@ class CMAgent(GetLLM):  # inherited from myllm.py where I set up the model
                 (
                     "system",
                     self.prompt,
-                ),  # the system prompt here is higher priority that the agent should follow.
+                ),
+                # the system prompt here is higher priority that the agent should follow.
                 (
                     "human",
                     "Analyze the essay and mock interview response of the "
@@ -46,11 +47,13 @@ class CMAgent(GetLLM):  # inherited from myllm.py where I set up the model
                     "Mock Interview response text:\n"
                     "{user_interview_response}\n\n"
                     "PDF bytes metadata: {pdf_bytes_info}",
-                ),  # human prompt here is the task request I want the agent to do. broke into details and formating.
+                ),
+                # human prompt here is the task request I want the agent to do. broke into details and formating.
             ]
         )
 
-        chain = prompt_template | self.llm  # I pipe the prompt into the LLM to create an executable LangChain pipeline. output of left -> right basically
+        # I pipe the prompt into the LLM to create an executable LangChain pipeline. output of left -> right basically
+        chain = prompt_template | self.llm
 
         answer = await chain.ainvoke(
             {
@@ -73,7 +76,8 @@ class CMAgent(GetLLM):  # inherited from myllm.py where I set up the model
             }
         )
 
-        inputs.result = answer.content  # I store the output of agent on varible {result} withing inputs object, which carries all the inputs of the student for each analysis session. On Flask frontend, we will use output['result'] to get it since the agent return a dictionary type.
+        # I store the output of agent on varible {result} withing inputs object, which carries all the inputs of the student for each analysis session. On Flask frontend, we will use output['result'] to get it since the agent return a dictionary type.
+        inputs.result = answer.content
 
         return inputs
 

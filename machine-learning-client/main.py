@@ -9,8 +9,8 @@ from CMagent import CMAgent
 from inputs import CMInputs
 from langgraph.graph import END, START, StateGraph
 
-# main async run func for one analysis
-async def CMRun(
+# main async run func
+async def cm_run(
     user_essay: str,
     intended_university: str | None = None,
     user_interview_response: str | None = None,
@@ -18,19 +18,19 @@ async def CMRun(
     notes: str | None = None,
     sat_score: int | None = None,
     gpa: float | None = None,
-    essay_pdf_bytes: bytes | None = None, 
+    essay_pdf_bytes: bytes | None = None,
 ):
-    """Run one college app analysis."""
+    """Run one college app analysis task."""
     # store one app's inputs in state
     user_state = CMInputs(
         user_essay=user_essay,
-        essay_file_name=essay_file_name,
-        essay_pdf_bytes=essay_pdf_bytes,
-        gpa=gpa,
-        notes=notes,
-        user_interview_response=user_interview_response,
         intended_university=intended_university,
+        user_interview_response=user_interview_response,
+        essay_file_name=essay_file_name,
+        notes=notes,
         sat_score=sat_score,
+        gpa=gpa,
+        essay_pdf_bytes=essay_pdf_bytes,
     )
 
     # agent node does the actual review
@@ -72,13 +72,12 @@ if __name__ == "__main__":
         pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
         return "\n\n".join(text for text in pages_text if text).strip()
 
-    FILE_PATH = "~/Desktop/filename.pdf"
     # with open(FILE_PATH, "rb") as file_obj:
     #     essay_pdf_bytes = file_obj.read()
     # extracted_text = _extract_pdf_text(essay_pdf_bytes or b"")
 
     output = asyncio.run(
-        CMRun(
+        cm_run(
             user_essay="Essay about becoming next tony stark",
             essay_file_name="no",
             essay_pdf_bytes=b"",
