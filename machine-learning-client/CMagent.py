@@ -30,7 +30,7 @@ class CMAgent(GetLLM):
                     "human",
                     "Analyze the essay and mock interview response of the "
                     "student, specially about his/hers "
-                    "credential/odds/potentials to get into the intended "
+                    "credential/odds/potentials to get into the intended"
                     "university he/she assigns. Based on these info "
                     "provided, give a detailed result/rating categorized in:\n"
                     "1) Applicant Score (you can only give one number from 1 to 100, make sure it's only a number)\n"
