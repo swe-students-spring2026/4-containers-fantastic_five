@@ -48,3 +48,4 @@ def test_cminputs_accepts_values():
     assert data.gpa == 4.0
     assert data.essay_pdf_bytes == b"abc"
     assert data.result == "Done"
+
