@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-import os
+import os,asyncio
+import sys
+from io import BytesIO
 import uuid
 from datetime import datetime
 from pathlib import Path
+import parser
+from pypdf import PdfReader
 
 from flask import (
     Flask,
@@ -18,6 +22,23 @@ from flask import (
 from interview_service import MockInterviewService
 from storage import SessionStorage
 from transcriber import AudioTranscriber
+
+ML_CLIENT_DIR = Path(__file__).resolve().parents[1] / "machine-learning-client"
+if str(ML_CLIENT_DIR) not in sys.path:
+    sys.path.insert(0, str(ML_CLIENT_DIR))
+
+from main import CMRun
+
+
+def extract_pdf_text(pdf_bytes: bytes) -> str:
+    #if the uploaded file is emply, return error
+    if not pdf_bytes:
+        return "error: input pdf file"
+    #conver the pdf into a file object so the pdf reader can read it
+    reader = PdfReader(BytesIO(pdf_bytes))
+    #go through each page and extract the text, then join all the text into one string
+    pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
+    return "\n\n".join(text for text in pages_text if text).strip()
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -310,48 +331,51 @@ def create_app(test_config: dict | None = None) -> Flask:
     
     # ---------- creating an analysis session ----------
     @flask_app.post("/api/analysis/create")
-    def create_analysis_session():
+    def new_session():
         """
-        Create a full analysis session from form data.
-        This is handy for the final submit button you plan to add later.
+        New session page.
+        Right now this mostly renders the form page.
+        If you later decide to POST here, this route is ready for it.
         """
         login_redirect = require_login()
         if login_redirect:
-            return jsonify({"error": "Not logged in."}), 401
+            return login_redirect
 
-        uploaded_file = request.files.get("user_essay")
-        intended_university = request.form.get("intended_university", "").strip()
-        sat_score_raw = request.form.get("sat_score", "").strip()
-        gpa_raw = request.form.get("gpa", "").strip()
-        notes = request.form.get("notes", "").strip()
+        if request.method == "POST":
+            uploaded_file = request.files.get("user_essay")
+            intended_university = request.form.get("intended_university", "").strip()
+            sat_score_raw = request.form.get("sat_score", "").strip()
+            gpa_raw = request.form.get("gpa", "").strip()
+            notes = request.form.get("notes", "").strip()
 
-        essay_text, essay_file_name, essay_bytes_string = read_uploaded_text(
-            uploaded_file
-        )
+            essay_text, essay_file_name, essay_bytes_string = read_uploaded_text(
+                uploaded_file
+            )
 
-        sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
-        try:
-            gpa = float(gpa_raw) if gpa_raw else 0.0
-        except ValueError:
-            gpa = 0.0
+            sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
+            try:
+                gpa = float(gpa_raw) if gpa_raw else 0.0
+            except ValueError:
+                gpa = 0.0
 
-        session_id = str(uuid.uuid4())
+            session_id = str(uuid.uuid4())
 
-        session_payload = storage.create_session(
-            session_id=session_id,
-            user_id=current_user_id(),
-            intended_university=intended_university,
-            user_essay=essay_text,
-            essay_file_name=essay_file_name,
-            sat_score=sat_score,
-            gpa=gpa,
-            notes=notes,
-            essay_pdf_bytes=essay_bytes_string,
-        )
+            session_payload = storage.create_session(
+                session_id=session_id,
+                user_id=current_user_id(),
+                intended_university=intended_university,
+                user_essay=essay_text,
+                essay_file_name=essay_file_name,
+                sat_score=sat_score,
+                gpa=gpa,
+                notes=notes,
+                essay_pdf_bytes=essay_bytes_string,
+            )
 
-        session_payload["created_at"] = datetime.utcnow().isoformat()
-        session_payload["status"] = "PENDING"
-        save_session_document(session_payload)
+            # add simple metadata not handled by storage.py yet
+            session_payload["created_at"] = datetime.utcnow().isoformat()
+            session_payload["status"] = "PENDING"
+            save_session_document(session_payload)
 
         return jsonify(
             {
