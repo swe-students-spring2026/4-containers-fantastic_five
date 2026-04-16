@@ -2,3 +2,9 @@ flask
 pymongo
 faster-whisper
 ffmpeg-python
+pypdf
+langchain-openai
+langchain-core
+langgraph
+pydantic
+python-dotenv

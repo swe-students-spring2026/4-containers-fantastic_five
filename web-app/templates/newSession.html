@@ -30,8 +30,9 @@
         before running the final analysis.
       </p>
 
-      <!-- Form (no submit yet) -->
-      <form enctype="multipart/form-data">
+      <!-- Form submit to create session and redirect to detail -->
+      <form method="POST" action="{{ url_for('new_session') }}" enctype="multipart/form-data">
+
 
         <!-- College essay upload -->
         <div>
@@ -102,8 +103,8 @@
 
         <!-- go to interview -->
         <p>
-          <button type="button" onclick="window.location.href='/interview'">
-            Proceed to Mock Interview
+          <button type="submit">
+            Run Analysis
           </button>
         </p>
 

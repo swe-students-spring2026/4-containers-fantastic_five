@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-import os
+import os,asyncio
+import sys
+from io import BytesIO
 import uuid
 from datetime import datetime
 from pathlib import Path
+import parser
+from pypdf import PdfReader
 
 from flask import (
     Flask,
@@ -18,6 +22,23 @@ from flask import (
 from interview_service import MockInterviewService
 from storage import SessionStorage
 from transcriber import AudioTranscriber
+
+ML_CLIENT_DIR = Path(__file__).resolve().parents[1] / "machine-learning-client"
+if str(ML_CLIENT_DIR) not in sys.path:
+    sys.path.insert(0, str(ML_CLIENT_DIR))
+
+from main import CMRun
+
+
+def extract_pdf_text(pdf_bytes: bytes) -> str:
+    #if the uploaded file is emply, return error
+    if not pdf_bytes:
+        return "error: input pdf file"
+    #conver the pdf into a file object so the pdf reader can read it
+    reader = PdfReader(BytesIO(pdf_bytes))
+    #go through each page and extract the text, then join all the text into one string
+    pages_text = [(page.extract_text() or "").strip() for page in reader.pages]
+    return "\n\n".join(text for text in pages_text if text).strip()
 
 def create_app(test_config: dict | None = None) -> Flask:
     """Application factory used by the dev server and tests."""
@@ -186,6 +207,7 @@ def create_app(test_config: dict | None = None) -> Flask:
         #pass both names in case your template still uses "runs"
         return render_template("dashboard.html", is_valid=True,sessions=sessions,runs=sessions,)
     
+    
     @flask_app.route("/runs/new", methods=["GET", "POST"])
     def new_session():
         """
@@ -203,10 +225,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             sat_score_raw = request.form.get("sat_score", "").strip()
             gpa_raw = request.form.get("gpa", "").strip()
             notes = request.form.get("notes", "").strip()
-
-            essay_text, essay_file_name, essay_bytes_string = read_uploaded_text(
-                uploaded_file
-            )
+            essay_file_name =uploaded_file.filename if uploaded_file and uploaded_file.filename else "Not provided"
+            essay_pdf_bytes = uploaded_file.read()
+            usser_essay = extract_pdf_text(essay_pdf_bytes or b"")
 
             sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
             try:
@@ -216,22 +237,52 @@ def create_app(test_config: dict | None = None) -> Flask:
 
             session_id = str(uuid.uuid4())
 
-            session_payload = storage.create_session(
-                session_id=session_id,
-                user_id=current_user_id(),
-                intended_university=intended_university,
-                user_essay=essay_text,
-                essay_file_name=essay_file_name,
-                sat_score=sat_score,
-                gpa=gpa,
-                notes=notes,
-                essay_pdf_bytes=essay_bytes_string,
+            session_payload = storage.create_session(session_id,current_user_id(),intended_university,usser_essay,essay_file_name,sat_score,gpa,notes,essay_pdf_bytes,
             )
 
-            # add simple metadata not handled by storage.py yet
+            # add metadata before running analysis so the detail page has stable fields
             session_payload["created_at"] = datetime.utcnow().isoformat()
             session_payload["status"] = "PENDING"
             save_session_document(session_payload)
+
+            output = asyncio.run( # The Agent is called here with all the provided inputs 
+                CMRun(
+                user_essay=usser_essay,
+                essay_file_name=essay_file_name,
+                essay_pdf_bytes=essay_pdf_bytes,
+                gpa=gpa,
+                notes=notes,
+                user_interview_response="Great",
+                intended_university=intended_university,
+                sat_score=sat_score
+                )
+            )
+
+            # Parsed agent output into 5 variables then store to mongodb
+            output_result = (
+                output.get("result")
+                if isinstance(output, dict)
+                else getattr(output, "result", None)
+            )
+
+            if output_result and session_id:
+                parsed = parser.parse_agent_output(output_result)
+
+                updated_session = storage.save_analysis_result(
+                    session_id=session_id,
+                    applicant_score=parsed["applicant_score"],
+                    strength=parsed["strength"],
+                    missing_elements=parsed["missing_elements"],
+                    suggested_edits=parsed["suggested_edits"],
+                    ai_insights=parsed["ai_insights"],
+                )
+
+                # mark complete so sessionDetail template renders parsed sections
+                updated_session["status"] = "COMPLETE"
+                updated_session["created_at"] = updated_session.get(
+                    "created_at", session_payload["created_at"]
+                )
+                save_session_document(updated_session)
 
             return redirect(url_for("session_detail", session_id=session_id))
 
@@ -308,59 +359,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
         return jsonify(response_record), 201
     
-    # ---------- creating an analysis session ----------
-    @flask_app.post("/api/analysis/create")
-    def create_analysis_session():
-        """
-        Create a full analysis session from form data.
-        This is handy for the final submit button you plan to add later.
-        """
-        login_redirect = require_login()
-        if login_redirect:
-            return jsonify({"error": "Not logged in."}), 401
-
-        uploaded_file = request.files.get("user_essay")
-        intended_university = request.form.get("intended_university", "").strip()
-        sat_score_raw = request.form.get("sat_score", "").strip()
-        gpa_raw = request.form.get("gpa", "").strip()
-        notes = request.form.get("notes", "").strip()
-
-        essay_text, essay_file_name, essay_bytes_string = read_uploaded_text(
-            uploaded_file
-        )
-
-        sat_score = int(sat_score_raw) if sat_score_raw.isdigit() else 0
-        try:
-            gpa = float(gpa_raw) if gpa_raw else 0.0
-        except ValueError:
-            gpa = 0.0
-
-        session_id = str(uuid.uuid4())
-
-        session_payload = storage.create_session(
-            session_id=session_id,
-            user_id=current_user_id(),
-            intended_university=intended_university,
-            user_essay=essay_text,
-            essay_file_name=essay_file_name,
-            sat_score=sat_score,
-            gpa=gpa,
-            notes=notes,
-            essay_pdf_bytes=essay_bytes_string,
-        )
-
-        session_payload["created_at"] = datetime.utcnow().isoformat()
-        session_payload["status"] = "PENDING"
-        save_session_document(session_payload)
-
-        return jsonify(
-            {
-                "sessionId": session_id,
-                "redirectUrl": url_for("session_detail", session_id=session_id),
-            }
-        )
-
-    
+   
     return flask_app
 
 
