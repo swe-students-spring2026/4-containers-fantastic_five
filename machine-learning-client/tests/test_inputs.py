@@ -1,7 +1,15 @@
+"""Tests for the CMInputs model."""
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from inputs import CMInputs
 
 
 def test_cminputs_defaults():
+    """CMInputs should default all optional fields to None."""
     data = CMInputs()
     assert data.session_id is None
     assert data.intended_university is None
@@ -16,6 +24,7 @@ def test_cminputs_defaults():
 
 
 def test_cminputs_accepts_values():
+    """CMInputs should store explicitly provided values."""
     data = CMInputs(
         session_id="123",
         intended_university="NYU",
