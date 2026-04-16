@@ -15,7 +15,7 @@ class CMAgent(GetLLM):# inherited from myllm.py where I set up the model
             ('system', self.prompt), #the system prompt here is higher priority that the agent should follow.
             ('human', 
                 "Analyze the essay and mock interview response of the student, specially about his/hers credential/odds/potentials to get into the intended university he/she assigns. Based on these info provided, give a detailed result/rating categorized in:\n"
-                "1) Applicant Score (0-100)\n"
+                "1) Applicant Score (you can only get a number from 1-100)\n"
                 "2) Essay Strengths (bullet list)\n"
                 "3) Missing elements (bullet list)\n"
                 "4) Suggested Edits (bullet list)\n"

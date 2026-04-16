@@ -5,6 +5,7 @@ Uses position-based extraction to handle formatting variations robustly.
 
 from __future__ import annotations
 
+import re
 from typing import TypedDict
 
 
@@ -66,15 +67,26 @@ def parse_agent_output(result: str) -> AgentOutput:
         }
 
     value_score = None
-    int_accumulator = ""
-    i = index_score + len(key_score)
-    while i < index_strength:
-        c = result[i]
-        if c in "0123456789":
-            int_accumulator += c
-        i += 1
-    if len(int_accumulator) > 0:
-        value_score = int(int_accumulator)
+    score_section = result[index_score:index_strength]
+
+    # Prefer explicit score formats near the heading, e.g.:
+    # "Applicant Score (0-100): 72" or "Applicant Score: 88/100"
+    heading_score_match = re.search(
+        r"(?i)applicant\s*score(?:\s*\([^)]*\))?\s*[:\-]?\s*([0-9]{1,3})(?:\s*/\s*100)?",
+        score_section,
+    )
+
+    if heading_score_match:
+        value_score = int(heading_score_match.group(1))
+    else:
+        # Fallback: first plausible standalone integer in the score section.
+        for number_str in re.findall(r"\b\d{1,3}\b", score_section):
+            candidate = int(number_str)
+            value_score = candidate
+            break
+
+    if value_score is not None:
+        value_score = max(0, min(100, value_score))
 
     i = index_strength + len(key_strength)
     value_strength = ""
